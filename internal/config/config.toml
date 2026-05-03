@@ -1,4 +1,3 @@
-[scan_dir]
 scan_dir = "$HOME/Downloads/"
 
 [rules.Images]

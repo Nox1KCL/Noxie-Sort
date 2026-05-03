@@ -19,7 +19,7 @@ func Core(cfg *config.Config) error {
 
 	switch userChoice {
 	case "b":
-		targetPath, err = files.GetDownloadsPath()
+		targetPath = cfg.ScanDir
 	case "m":
 		targetPath, err = getManualPath()
 	default:

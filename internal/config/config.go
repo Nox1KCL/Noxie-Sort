@@ -53,9 +53,15 @@ func GetConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("validating config: %w", err)
 	}
 
-	cfg.InvertConfig()
+	cfg.Prepare()
 
 	return &cfg, nil
+}
+
+func (cfg *Config) Prepare() {
+	cfg.ScanDir = filepath.Clean(os.ExpandEnv(cfg.ScanDir))
+
+	cfg.InvertConfig()
 }
 
 func (cfg *Config) InvertConfig() {
