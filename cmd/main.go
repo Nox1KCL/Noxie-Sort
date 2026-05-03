@@ -25,6 +25,7 @@ func main() {
 	levels := map[slog.Level]string{
 		slog.LevelInfo:  "logs/info.log",
 		slog.LevelError: "logs/error.log",
+		slog.LevelWarn:  "logs/warn.log",
 	}
 	handler, logErr := logger.GetHandler(&cfg.Logger, levels)
 	if logErr != nil {
