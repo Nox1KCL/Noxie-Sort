@@ -3,6 +3,7 @@ package files
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/Nox1KCL/InFolderSort/internal/config"
 )
+
+var flog = slog.With("module", "files")
 
 type SortResult struct {
 	Moved   []string
@@ -32,6 +35,7 @@ type Sorter struct {
 }
 
 func NewSorter(targetDir string, cfg *config.Config) *Sorter {
+	flog.Info("creating sorter")
 	return &Sorter{
 		Config:  cfg,
 		ScanDir: targetDir,
@@ -58,6 +62,8 @@ func (s *Sorter) Scan() error {
 
 func (s *Sorter) Plan() error {
 	if len(s.Files) == 0 {
+		flog.Error("no files found",
+			"dir", s.ScanDir)
 		return fmt.Errorf("no files found in %q", s.ScanDir)
 	}
 	if s.Config == nil {
@@ -69,6 +75,10 @@ func (s *Sorter) Plan() error {
 		fileExt := filepath.Ext(fileName)
 		targetPath, err := s.Config.GetTargetPath(fileExt)
 		if err != nil {
+			flog.Warn("file extension not found in config",
+				"file", fileName,
+				"ext", fileExt,
+				"error", err)
 			s.Errors = append(s.Errors, err)
 			continue
 		}
@@ -82,6 +92,10 @@ func (s *Sorter) Plan() error {
 
 		exist, err := IsFileExist(filepath.Join(savePath, fileName))
 		if err != nil {
+			flog.Warn("checking file existence",
+				"file", fileName,
+				"path", savePath,
+				"error", err)
 			s.Errors = append(s.Errors, err)
 			continue
 		}
@@ -104,6 +118,10 @@ func (s *Sorter) Execute() (SortResult, error) {
 	for _, task := range s.Tasks {
 		destDir := filepath.Dir(task.DestPath)
 		if err := os.MkdirAll(destDir, 0755); err != nil {
+			flog.Error("creating dirs",
+				"dir", destDir,
+				"error", err)
+
 			report.Errors = append(report.Errors,
 				fmt.Errorf("creating dirs by path %q: %w", destDir, err),
 			)
@@ -112,6 +130,11 @@ func (s *Sorter) Execute() (SortResult, error) {
 		}
 
 		if err := os.Rename(task.SourcePath, task.DestPath); err != nil {
+			flog.Error("moving file",
+				"from", task.SourcePath,
+				"to", task.DestPath,
+				"error", err,
+				"file", task.FileName)
 			report.Errors = append(report.Errors,
 				fmt.Errorf("moving file from %q to %q: %w", task.SourcePath, task.DestPath, err))
 			report.Skipped = append(report.Skipped, task.FileName)
@@ -120,6 +143,12 @@ func (s *Sorter) Execute() (SortResult, error) {
 
 		report.Moved = append(report.Moved, task.FileName)
 	}
+	flog.Info("sorting completed",
+		"total", len(s.Tasks),
+		"moved", len(report.Moved),
+		"skipped", len(report.Skipped),
+	)
+
 	return report, nil
 }
 
@@ -173,6 +202,7 @@ func IsFileExist(path string) (bool, error) {
 	} else if errors.Is(err, os.ErrNotExist) {
 		return false, nil
 	}
+
 	return false, fmt.Errorf("checking file %q: %w", path, err)
 }
 
