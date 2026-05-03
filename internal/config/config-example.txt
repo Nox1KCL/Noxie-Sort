@@ -5,3 +5,9 @@ extensions = [".jpg", ".png", ".gif"]
 [rules.Name2]
 target_path = "path/to/Name2"
 extensions = [".pdf", ".docx", ".txt"]
+
+[logger]
+max_size = 10
+max_age = 28
+max_backups = 4
+compress = true
