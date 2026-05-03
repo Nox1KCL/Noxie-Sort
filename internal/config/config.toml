@@ -1,3 +1,6 @@
+[scan_dir]
+scan_dir = "$HOME/Downloads/"
+
 [rules.Images]
 target_path = "$HOME/Downloads/Images"
 extensions = [".jpg", ".png", ".gif"]

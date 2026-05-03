@@ -19,6 +19,7 @@ var clog = slog.With("module", "config")
 var defaultConfig []byte
 
 type Config struct {
+	ScanDir       string                `toml:"scan_dir"`
 	Rules         map[string]FolderRule `toml:"rules"`
 	InvertedRules map[string]string
 	Logger        logger.LumberConfig `toml:"logger"`
