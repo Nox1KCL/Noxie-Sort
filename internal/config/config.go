@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,8 @@ import (
 	"github.com/Nox1KCL/InFolderSort/internal/logger"
 	"github.com/pelletier/go-toml/v2"
 )
+
+var clog = slog.With("module", "config")
 
 //go:embed config.toml
 var defaultConfig []byte
@@ -36,6 +39,7 @@ func GetConfig(path string) (*Config, error) {
 			return nil, fmt.Errorf("reading config file %q: %w", path, err)
 		}
 	} else {
+		clog.Info("no config file provided, using default config")
 		doc = defaultConfig
 	}
 
@@ -47,7 +51,7 @@ func GetConfig(path string) (*Config, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
 	}
-	// Inverting config once in first call
+
 	cfg.InvertConfig()
 
 	return &cfg, nil
@@ -85,6 +89,8 @@ func (cfg *Config) Validate() error {
 			ext = strings.ToLower(strings.TrimSpace(ext))
 
 			if ext == "" {
+				clog.Warn("empty extension in config",
+					"folder", folderName)
 				conflicts = append(conflicts, fmt.Errorf("empty extension in %s", folderName))
 				continue
 			}
@@ -95,6 +101,10 @@ func (cfg *Config) Validate() error {
 			}
 
 			if firstDebut, exists := seenExtensions[ext]; exists {
+				clog.Warn("duplicate extension",
+					"folder", folderName,
+					"ext", ext,
+					"firstDebut", firstDebut)
 				conflicts = append(conflicts, fmt.Errorf("duplicate extension: %s | Seen it in %s and %s", ext, firstDebut, folderName))
 				continue
 			} else {
