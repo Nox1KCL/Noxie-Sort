@@ -12,11 +12,16 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "", "path to config file (uses embedded default if empty)")
-	flag.Parse()
-	actualConfigPath := *configPath
+	var (
+		configPath string
+		isDaemon   bool
+	)
 
-	cfg, cfgErr := config.GetConfig(actualConfigPath)
+	flag.StringVar(&configPath, "config", "", "path to config file (uses embedded default if empty)")
+	flag.BoolVar(&isDaemon, "daemon", false, "run as daemon")
+	flag.Parse()
+
+	cfg, cfgErr := config.GetConfig(configPath)
 	if cfgErr != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "get configuration file: %v\n", cfgErr)
 		os.Exit(1)
@@ -36,7 +41,7 @@ func main() {
 	mlog := slog.With("module", "main")
 
 	mlog.Info("configuration initialized",
-		"config_path", actualConfigPath,
+		"config_path", configPath,
 		"rules_count", len(cfg.Rules),
 	)
 

@@ -1,3 +1,4 @@
 .idea/
 logs/
 internal/config/config.toml
+.antigravity/
