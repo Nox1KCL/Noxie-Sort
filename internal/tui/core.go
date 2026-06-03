@@ -7,45 +7,43 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Nox1KCL/InFolderSort/internal/config"
 	"github.com/Nox1KCL/InFolderSort/internal/files"
 )
 
-func Core(cfg *config.Config) error {
-	userChoice := askChoice("basic sort or manual?(b/m): ", "b", "m")
+//func Core(cfg *config.Config, sorter *files.Sorter) error {
+//	userChoice := askChoice("basic sort or manual?(b/m): ", "b", "m")
+//	var targetPath string
+//	var err error
+//
+//	switch userChoice {
+//	case "b":
+//		targetPath = cfg.ScanDir
+//	case "m":
+//		targetPath, err = getManualPath()
+//	default:
+//		return fmt.Errorf("unexpected user choice: %q", userChoice)
+//	}
+//
+//	if err != nil {
+//		return fmt.Errorf("failed to get target path: %w", err)
+//	}
+//
+//	return performSort(sorter)
+//}
 
-	var targetPath string
-	var err error
-
-	switch userChoice {
-	case "b":
-		targetPath = cfg.ScanDir
-	case "m":
-		targetPath, err = getManualPath()
-	default:
-		return fmt.Errorf("unexpected user choice: %q", userChoice)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to get target path: %w", err)
-	}
-
-	return performSort(targetPath, cfg)
-}
-
-func performSort(targetDir string, cfg *config.Config) error {
-	fileInfo, err := os.Stat(targetDir)
+func performSort(sorter *files.Sorter) error {
+	fileInfo, err := os.Stat(sorter.ScanDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("path doesn't exist: %w", err)
 		}
-		return fmt.Errorf("getting file info %q: %w", targetDir, err)
+		return fmt.Errorf("getting file info %q: %w", sorter.ScanDir, err)
 	}
 	if !fileInfo.IsDir() {
 		return fmt.Errorf("path is not a directory: %q", fileInfo.Name())
 	}
 
-	report, err := files.InDirSorting(targetDir, cfg)
+	report, err := files.InDirSorting(sorter)
 	if err != nil {
 		return fmt.Errorf("directory sorting error: %w", err)
 	}
