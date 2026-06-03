@@ -14,6 +14,11 @@ import (
 
 var flog = slog.With("module", "files")
 
+type FileInfo struct {
+	Path string
+	Name string
+}
+
 type SortResult struct {
 	Moved   []string
 	Skipped []string
@@ -29,17 +34,17 @@ type MoveTask struct {
 type Sorter struct {
 	Config  *config.Config
 	ScanDir string
-	Files   []os.DirEntry
+	Files   []FileInfo
 	Tasks   []MoveTask
 	Errors  []error
 }
 
-func NewSorter(targetDir string, cfg *config.Config) *Sorter {
+func NewSorter(cfg *config.Config) *Sorter {
 	flog.Info("creating sorter")
 	return &Sorter{
 		Config:  cfg,
-		ScanDir: targetDir,
-		Files:   make([]os.DirEntry, 0),
+		ScanDir: cfg.ScanDir,
+		Files:   make([]FileInfo, 0),
 		Tasks:   make([]MoveTask, 0),
 		Errors:  make([]error, 0),
 	}
@@ -50,11 +55,15 @@ func (s *Sorter) Scan() error {
 	if err != nil {
 		return fmt.Errorf("reading directory %q: %w", s.ScanDir, err)
 	}
+	var file FileInfo
 
 	for _, entry := range entries {
 		fileName := entry.Name()
 		if !entry.IsDir() && !strings.HasPrefix(fileName, ".") {
-			s.Files = append(s.Files, entry)
+			file = FileInfo{
+				Path: s.ScanDir,
+				Name: fileName}
+			s.Files = append(s.Files, file)
 		}
 	}
 	return nil
@@ -71,7 +80,7 @@ func (s *Sorter) Plan() error {
 	}
 
 	for _, file := range s.Files {
-		fileName := file.Name()
+		fileName := file.Name
 		fileExt := filepath.Ext(fileName)
 		targetPath, err := s.Config.GetTargetPath(fileExt)
 		if err != nil {
@@ -152,10 +161,10 @@ func (s *Sorter) Execute() (SortResult, error) {
 	return report, nil
 }
 
-func InDirSorting(scanDir string, cfg *config.Config) (SortResult, error) {
-	sorter := NewSorter(scanDir, cfg)
+func InDirSorting(sorter *Sorter) (SortResult, error) {
+
 	if err := sorter.Scan(); err != nil {
-		return SortResult{}, fmt.Errorf("scanning directory %q: %w", scanDir, err)
+		return SortResult{}, fmt.Errorf("scanning directory %q: %w", sorter.ScanDir, err)
 	}
 	if err := sorter.Plan(); err != nil {
 		return SortResult{}, fmt.Errorf("planning sorting: %w", err)
@@ -163,6 +172,19 @@ func InDirSorting(scanDir string, cfg *config.Config) (SortResult, error) {
 
 	if report, err := sorter.Execute(); err != nil {
 		report.Errors = append(report.Errors, sorter.Errors...)
+		return report, fmt.Errorf("executing sorting: %w", err)
+	} else {
+		return report, nil
+	}
+}
+func (s *Sorter) SelectiveSorting(fileName string) (SortResult, error) {
+	s.Files = append(s.Files, FileInfo{s.ScanDir, fileName})
+
+	if err := s.Plan(); err != nil {
+		return SortResult{}, fmt.Errorf("planning sorting: %w", err)
+	}
+	if report, err := s.Execute(); err != nil {
+		report.Errors = append(report.Errors, s.Errors...)
 		return report, fmt.Errorf("executing sorting: %w", err)
 	} else {
 		return report, nil
