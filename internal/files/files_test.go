@@ -15,20 +15,16 @@ func TestInDirSorting_Basic(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(dir, "doc.pdf"), []byte("data"), 0644)
 
 	cfg := &config.Config{
+		ScanDir: dir,
 		Rules: map[string]config.FolderRule{
-			"Images": {
-				TargetPath: "Images",
-				Extensions: []string{".jpg"},
-			},
-			"Docs": {
-				TargetPath: "Docs",
-				Extensions: []string{".pdf"},
-			},
+			"Images": {TargetPath: "Images", Extensions: []string{".jpg"}},
+			"Docs":   {TargetPath: "Docs", Extensions: []string{".pdf"}},
 		},
 	}
 	cfg.InvertConfig()
 
-	report, err := InDirSorting(dir, cfg)
+	sorter := NewSorter(cfg)
+	report, err := InDirSorting(sorter)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -39,7 +35,6 @@ func TestInDirSorting_Basic(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, "Docs", "doc.pdf")); err != nil {
 		t.Error("doc.pdf was not moved to Docs/")
 	}
-
 	if len(report.Moved) != 2 {
 		t.Errorf("expected 2 moved files, got %d", len(report.Moved))
 	}
@@ -47,58 +42,236 @@ func TestInDirSorting_Basic(t *testing.T) {
 
 func TestSorter_ConflictResolution(t *testing.T) {
 	dir := t.TempDir()
-	
-	// Створюємо цільову папку і файл, який вже там існує (Конфлікт!)
 	targetSubdir := filepath.Join(dir, "Images")
 	_ = os.MkdirAll(targetSubdir, 0755)
 	_ = os.WriteFile(filepath.Join(targetSubdir, "photo.jpg"), []byte("old data"), 0644)
-
-	// Створюємо новий файл у папці для сканування
 	_ = os.WriteFile(filepath.Join(dir, "photo.jpg"), []byte("new data"), 0644)
 
 	cfg := &config.Config{
+		ScanDir: dir,
 		Rules: map[string]config.FolderRule{
-			"Images": {
-				TargetPath: "Images",
-				Extensions: []string{".jpg"},
-			},
+			"Images": {TargetPath: "Images", Extensions: []string{".jpg"}},
 		},
 	}
 	cfg.InvertConfig()
 
-	sorter := NewSorter(dir, cfg)
-	
+	sorter := NewSorter(cfg)
 	if err := sorter.Scan(); err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
-	
 	if err := sorter.Plan(); err != nil {
 		t.Fatalf("Plan failed: %v", err)
 	}
-
-	// Перевіряємо, чи план дійсно запропонував нове ім'я
 	if len(sorter.Tasks) != 1 {
 		t.Fatalf("expected 1 task, got %d", len(sorter.Tasks))
 	}
-
-	destPath := sorter.Tasks[0].DestPath
-	if !strings.Contains(destPath, "photo_") {
-		t.Errorf("expected renamed file with timestamp, got %s", destPath)
+	if !strings.Contains(sorter.Tasks[0].DestPath, "photo_") {
+		t.Errorf("expected renamed file with timestamp, got %s", sorter.Tasks[0].DestPath)
 	}
 
-	// Виконуємо сортування
 	report, err := sorter.Execute()
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
-
 	if len(report.Moved) != 1 {
 		t.Errorf("expected 1 moved file, got %d", len(report.Moved))
 	}
-
-	// Перевіряємо, чи обидва файли тепер існують у цільовій папці
 	entries, _ := os.ReadDir(targetSubdir)
 	if len(entries) != 2 {
 		t.Errorf("expected 2 files in target subdir, got %d", len(entries))
+	}
+}
+
+func TestNewSorter(t *testing.T) {
+	cfg := &config.Config{ScanDir: "/tmp"}
+	sorter := NewSorter(cfg)
+
+	if sorter == nil {
+		t.Fatal("NewSorter returned nil")
+	}
+	if sorter.ScanDir != "/tmp" {
+		t.Errorf("expected ScanDir '/tmp', got %q", sorter.ScanDir)
+	}
+	if len(sorter.Files) != 0 || len(sorter.Tasks) != 0 {
+		t.Error("new sorter should have empty slices")
+	}
+}
+
+func TestSorter_Scan_SkipsHiddenFiles(t *testing.T) {
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "visible.txt"), []byte("data"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, ".hidden"), []byte("data"), 0644)
+
+	cfg := &config.Config{ScanDir: dir}
+	sorter := NewSorter(cfg)
+
+	if err := sorter.Scan(); err != nil {
+		t.Fatalf("Scan failed: %v", err)
+	}
+	if len(sorter.Files) != 1 || sorter.Files[0].Name == ".hidden" {
+		t.Errorf("expected 1 visible file, got %d files: %v", len(sorter.Files), sorter.Files)
+	}
+}
+
+func TestSorter_Scan_EmptyDir(t *testing.T) {
+	dir := t.TempDir()
+	cfg := &config.Config{ScanDir: dir}
+	sorter := NewSorter(cfg)
+
+	if err := sorter.Scan(); err != nil {
+		t.Fatalf("Scan failed: %v", err)
+	}
+	if len(sorter.Files) != 0 {
+		t.Errorf("expected 0 files in empty dir, got %d", len(sorter.Files))
+	}
+}
+
+func TestSorter_Plan_NoFiles(t *testing.T) {
+	dir := t.TempDir()
+	cfg := &config.Config{ScanDir: dir}
+	sorter := NewSorter(cfg)
+
+	if err := sorter.Plan(); err == nil {
+		t.Fatal("expected error for Plan with no files, got nil")
+	}
+}
+
+func TestSorter_Plan_ExtensionNotFound(t *testing.T) {
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "unknown.xyz"), []byte("data"), 0644)
+
+	cfg := &config.Config{
+		ScanDir: dir,
+		Rules:   map[string]config.FolderRule{},
+	}
+	cfg.InvertConfig()
+
+	sorter := NewSorter(cfg)
+	_ = sorter.Scan()
+
+	if err := sorter.Plan(); err != nil {
+		t.Fatalf("Plan failed unexpectedly: %v", err)
+	}
+	if len(sorter.Tasks) != 0 {
+		t.Errorf("expected 0 tasks for unknown extension, got %d", len(sorter.Tasks))
+	}
+	if len(sorter.Errors) == 0 {
+		t.Error("expected at least 1 error for unknown extension")
+	}
+}
+
+func TestSorter_Plan_AbsoluteTargetPath(t *testing.T) {
+	dir := t.TempDir()
+	absTarget := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "file.txt"), []byte("data"), 0644)
+
+	cfg := &config.Config{
+		ScanDir: dir,
+		Rules: map[string]config.FolderRule{
+			"Docs": {TargetPath: absTarget, Extensions: []string{".txt"}},
+		},
+	}
+	cfg.InvertConfig()
+
+	sorter := NewSorter(cfg)
+	_ = sorter.Scan()
+	_ = sorter.Plan()
+
+	if len(sorter.Tasks) != 1 {
+		t.Fatalf("expected 1 task, got %d", len(sorter.Tasks))
+	}
+	if sorter.Tasks[0].DestPath != filepath.Join(absTarget, "file.txt") {
+		t.Errorf("expected dest %s, got %s", filepath.Join(absTarget, "file.txt"), sorter.Tasks[0].DestPath)
+	}
+}
+
+func TestSelectiveSorting(t *testing.T) {
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "doc.pdf"), []byte("data"), 0644)
+
+	cfg := &config.Config{
+		ScanDir: dir,
+		Rules: map[string]config.FolderRule{
+			"Docs": {TargetPath: "Docs", Extensions: []string{".pdf"}},
+		},
+	}
+	cfg.InvertConfig()
+
+	sorter := NewSorter(cfg)
+	report, err := sorter.SelectiveSorting("doc.pdf")
+
+	if err != nil {
+		t.Fatalf("SelectiveSorting failed: %v", err)
+	}
+	if len(report.Moved) != 1 {
+		t.Errorf("expected 1 moved file, got %d", len(report.Moved))
+	}
+	if _, err := os.Stat(filepath.Join(dir, "Docs", "doc.pdf")); err != nil {
+		t.Error("doc.pdf was not moved to Docs/")
+	}
+}
+
+func TestIsFileExist(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "exists.txt")
+	_ = os.WriteFile(path, []byte("data"), 0644)
+
+	exists, err := IsFileExist(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !exists {
+		t.Error("expected file to exist")
+	}
+
+	notExists, err := IsFileExist(filepath.Join(dir, "nope.txt"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if notExists {
+		t.Error("expected file not to exist")
+	}
+}
+
+func TestRenameFile_AddsTimestamp(t *testing.T) {
+	result := RenameFile("photo.jpg")
+
+	if !strings.Contains(result, "photo_") {
+		t.Errorf("expected 'photo_' in result, got %q", result)
+	}
+	if !strings.HasSuffix(result, ".jpg") {
+		t.Errorf("expected .jpg extension, got %q", result)
+	}
+
+	// Verify timestamp format: photo_20260603_123450.jpg
+	parts := strings.Split(result, "_")
+	if len(parts) != 2 {
+		t.Fatalf("expected 'name_TIMESTAMP.ext', got %q", result)
+	}
+	ts := strings.TrimSuffix(parts[1], ".jpg")
+	if len(ts) != 15 { // "20060102_150405" = 15 chars
+		t.Errorf("expected 15-char timestamp, got %q (%d chars)", ts, len(ts))
+	}
+}
+
+func TestRenameFile_MultipleDots(t *testing.T) {
+	result := RenameFile("archive.tar.gz")
+
+	if !strings.Contains(result, "archive.tar_") {
+		t.Errorf("expected 'archive.tar_' in result, got %q", result)
+	}
+	if !strings.HasSuffix(result, ".gz") {
+		t.Errorf("expected .gz extension, got %q", result)
+	}
+}
+
+func TestRenameFile_NoExtension(t *testing.T) {
+	result := RenameFile("README")
+
+	if !strings.Contains(result, "README_") {
+		t.Errorf("expected 'README_' in result, got %q", result)
+	}
+	if strings.HasSuffix(result, ".") {
+		t.Errorf("should not end with dot, got %q", result)
 	}
 }
