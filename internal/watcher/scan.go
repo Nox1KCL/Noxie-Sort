@@ -1,7 +1,7 @@
 package watcher
 
 import (
-	"log"
+	"context"
 	"log/slog"
 	"path/filepath"
 	"sync"
@@ -13,57 +13,66 @@ import (
 
 var snlog = slog.With("module", "scanner")
 
-func Scanner(cfg *config.Config, jobs chan<- string) {
+func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		snlog.Error("failed to initialize watcher",
 			"error", err)
+		return
 	}
-	snlog.Info("watcher initialized")
 	defer watcher.Close()
-
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Has(fsnotify.Create) || event.Has(fsnotify.Write) {
-					snlog.Debug("event", "event", event)
-					jobs <- event.Name
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Println("error:", err)
-			}
-		}
-	}()
+	snlog.Info("watcher initialized")
 
 	err = watcher.Add(cfg.ScanDir)
 	if err != nil {
-		log.Fatal(err)
+		snlog.Error("failed to add watch directory",
+			"error", err,
+			"dir", cfg.ScanDir)
+		return
 	}
 
-	// Block main goroutine forever.
-	<-make(chan struct{})
+	for {
+		select {
+		case <-ctx.Done():
+			snlog.Warn("context done")
+			return
+
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+			if event.Has(fsnotify.Create) || event.Has(fsnotify.Write) {
+				snlog.Debug("event", "event", event)
+				select {
+				case jobs <- event.Name:
+				case <-ctx.Done():
+					return
+				}
+			}
+
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			snlog.Error("watcher error",
+				"error", err)
+		}
+	}
 }
 
 func Worker(jobs <-chan string, wg *sync.WaitGroup, cfg *config.Config) {
 	defer wg.Done()
-	var workerResults []files.SortResult
+	//var workerResults []files.SortResult
 
 	for j := range jobs {
 		localSorter := files.NewSorter(cfg)
 		fileName := filepath.Base(j)
 
-		sortRes, err := localSorter.SelectiveSorting(fileName)
+		_, err := localSorter.SelectiveSorting(fileName)
 		if err != nil {
 			snlog.Error("sorting failed",
 				"error", err)
 		}
-		workerResults = append(workerResults, sortRes)
+		//workerResults = append(workerResults, sortRes)
 	}
 }

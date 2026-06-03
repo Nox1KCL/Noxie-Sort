@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/Nox1KCL/InFolderSort/internal/config"
 	"github.com/Nox1KCL/InFolderSort/internal/logger"
@@ -17,9 +20,6 @@ func main() {
 		configPath string
 		isDaemon   bool
 	)
-	jobs := make(chan string, 100)
-
-	// TODO: ExcaliDraw план
 	flag.StringVar(&configPath, "config", "", "path to config file (uses embedded default if empty)")
 	flag.BoolVar(&isDaemon, "daemon", false, "run as daemon")
 	flag.Parse()
@@ -49,17 +49,41 @@ func main() {
 		"rules_count", len(cfg.Rules),
 	)
 
-	//sorter := files.NewSorter(cfg)
-	wg := sync.WaitGroup{}
-	wg.Add(3)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	for i := 0; i < 3; i++ {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	wg := sync.WaitGroup{}
+	numWorkers := 3
+	jobs := make(chan string, 100)
+
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
 		go watcher.Worker(jobs, &wg, cfg)
 	}
 
-	watcher.Scanner(cfg, jobs)
+	var scannerWg sync.WaitGroup
+	scannerWg.Add(1)
+	go func() {
+		defer scannerWg.Done()
+		watcher.Scanner(ctx, cfg, jobs)
+	}()
+
+	sig := <-sigChan
+	mlog.Warn("received stop signal, shutting down gracefully",
+		"signal", sig)
+
+	cancel()
+	scannerWg.Wait()
+
+	close(jobs)
 	wg.Wait()
 
+	mlog.Info("graceful shutdown complete")
+
+	//sorter := files.NewSorter(cfg)
 	// Start tui
 	//err := tui.Core(cfg, sorter)
 	//if err != nil {
