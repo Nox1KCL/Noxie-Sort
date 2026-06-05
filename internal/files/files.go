@@ -191,14 +191,6 @@ func (s *Sorter) SelectiveSorting(fileName string) (SortResult, error) {
 	}
 }
 
-func GetHomeDir() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to find home directory: %w", err)
-	}
-	return homeDir, nil
-}
-
 func GetDownloadsPath() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {

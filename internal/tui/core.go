@@ -53,7 +53,7 @@ func performSort(sorter *files.Sorter) error {
 }
 
 func getManualPath() (string, error) {
-	homeDir, err := files.GetHomeDir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("getting home directory: %w", err)
 	}
