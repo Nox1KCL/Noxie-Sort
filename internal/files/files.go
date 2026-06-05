@@ -161,6 +161,7 @@ func (s *Sorter) Execute() (SortResult, error) {
 	return report, nil
 }
 
+// TODO: зробити методом
 func InDirSorting(sorter *Sorter) (SortResult, error) {
 
 	if err := sorter.Scan(); err != nil {
@@ -177,6 +178,7 @@ func InDirSorting(sorter *Sorter) (SortResult, error) {
 		return report, nil
 	}
 }
+
 func (s *Sorter) SelectiveSorting(fileName string) (SortResult, error) {
 	s.Files = append(s.Files, FileInfo{s.ScanDir, fileName})
 

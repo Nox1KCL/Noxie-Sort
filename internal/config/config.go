@@ -45,10 +45,10 @@ func GetConfig(path string) (*Config, error) {
 	}
 
 	var cfg Config
+
 	if err := toml.Unmarshal(doc, &cfg); err != nil {
 		return nil, fmt.Errorf("reading toml doc %q: %w", path, err)
 	}
-
 	if err := cfg.Prepare(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
 	}
@@ -57,10 +57,13 @@ func GetConfig(path string) (*Config, error) {
 }
 
 func (cfg *Config) Prepare() error {
-	cfg.ScanDir = filepath.Clean(os.ExpandEnv(cfg.ScanDir))
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
 
+	cfg.ScanDir = filepath.Clean(os.ExpandEnv(cfg.ScanDir))
 	cfg.InvertConfig()
-	return cfg.Validate()
+	return nil
 }
 
 func (cfg *Config) InvertConfig() {
