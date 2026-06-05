@@ -141,24 +141,36 @@ func FindConfig(flagPath string) string {
 		clog.Info("get config by ENV")
 		return envPath
 	}
+
 	defaultPaths := []string{
-		"./inFolderSort/config/config.toml",
-		"$XDG_CONFIG_HOME/inFolderSort/config.toml",
-		"~/.config/inFolderSort/config.toml",
+		"config.toml",
+		os.ExpandEnv("$HOME/inFolderSort/config.toml"),
 		"/etc/inFolderSort/config.toml",
 	}
+
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		clog.Error("unable to get system config directory",
+			"error", err)
+	} else {
+		defaultPaths = append(defaultPaths, filepath.Join(configDir, "inFolderSort", "config.toml"))
+	}
+
 	for _, p := range defaultPaths {
 		defaultPath := os.ExpandEnv(p)
 		if _, err := os.Stat(defaultPath); err != nil {
 			if errors.Is(err, os.ErrNotExist) {
+				clog.Debug("checking default paths", "error", err)
 				continue
 			}
 			clog.Error("get error when try to get config file",
 				"error", err)
 		}
-		clog.Info("get config by DEFAULT PATH")
+		clog.Info("get config by DEFAULT PATH",
+			"path", defaultPaths)
 		return defaultPath
 	}
 	// Провокуєм embedded
+	clog.Debug("no config file found on disk, returning empty path")
 	return ""
 }
