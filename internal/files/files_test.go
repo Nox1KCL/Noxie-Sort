@@ -21,7 +21,7 @@ func TestInDirSorting_Basic(t *testing.T) {
 			"Docs":   {TargetPath: "Docs", Extensions: []string{".pdf"}},
 		},
 	}
-	cfg.InvertConfig()
+	cfg.Prepare()
 
 	sorter := NewSorter(cfg)
 	report, err := InDirSorting(sorter)
@@ -53,7 +53,7 @@ func TestSorter_ConflictResolution(t *testing.T) {
 			"Images": {TargetPath: "Images", Extensions: []string{".jpg"}},
 		},
 	}
-	cfg.InvertConfig()
+	cfg.Prepare()
 
 	sorter := NewSorter(cfg)
 	if err := sorter.Scan(); err != nil {
@@ -144,7 +144,7 @@ func TestSorter_Plan_ExtensionNotFound(t *testing.T) {
 		ScanDir: dir,
 		Rules:   map[string]config.FolderRule{},
 	}
-	cfg.InvertConfig()
+	cfg.Prepare()
 
 	sorter := NewSorter(cfg)
 	_ = sorter.Scan()
@@ -171,7 +171,7 @@ func TestSorter_Plan_AbsoluteTargetPath(t *testing.T) {
 			"Docs": {TargetPath: absTarget, Extensions: []string{".txt"}},
 		},
 	}
-	cfg.InvertConfig()
+	cfg.Prepare()
 
 	sorter := NewSorter(cfg)
 	_ = sorter.Scan()
@@ -195,7 +195,7 @@ func TestSelectiveSorting(t *testing.T) {
 			"Docs": {TargetPath: "Docs", Extensions: []string{".pdf"}},
 		},
 	}
-	cfg.InvertConfig()
+	cfg.Prepare()
 
 	sorter := NewSorter(cfg)
 	report, err := sorter.SelectiveSorting("doc.pdf")
@@ -244,13 +244,21 @@ func TestRenameFile_AddsTimestamp(t *testing.T) {
 	}
 
 	// Verify timestamp format: photo_20260603_123450.jpg
+	// Since timestamp has an underscore, we expect 3 parts: "photo", "YYYYMMDD", "HHMMSS.jpg"
 	parts := strings.Split(result, "_")
-	if len(parts) != 2 {
-		t.Fatalf("expected 'name_TIMESTAMP.ext', got %q", result)
+	if len(parts) < 3 {
+		t.Fatalf("expected 'name_YYYYMMDD_HHMMSS.ext', got %q", result)
 	}
-	ts := strings.TrimSuffix(parts[1], ".jpg")
-	if len(ts) != 15 { // "20060102_150405" = 15 chars
-		t.Errorf("expected 15-char timestamp, got %q (%d chars)", ts, len(ts))
+
+	// Check the date part (8 chars)
+	if len(parts[len(parts)-2]) != 8 {
+		t.Errorf("expected 8-char date, got %q", parts[len(parts)-2])
+	}
+
+	// Check the time part without extension (6 chars)
+	timePart := strings.TrimSuffix(parts[len(parts)-1], ".jpg")
+	if len(timePart) != 6 {
+		t.Errorf("expected 6-char time, got %q", timePart)
 	}
 }
 

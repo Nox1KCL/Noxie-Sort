@@ -8,6 +8,10 @@ extensions = [".jpg", ".png", ".gif"]
 target_path = "$HOME/Downloads/Documents"
 extensions = [".pdf", ".docx", ".txt"]
 
+[rules.Archives]
+target_path = "$HOME/Downloads/Archives"
+extensions = [".tar.gz"]
+
 [logger]
 max_size = 10
 max_age = 28
