@@ -24,7 +24,8 @@ func main() {
 	flag.BoolVar(&isDaemon, "daemon", false, "run as daemon")
 	flag.Parse()
 
-	cfg, cfgErr := config.GetConfig(configPath)
+	path := config.FindConfig(configPath)
+	cfg, cfgErr := config.GetConfig(path)
 	if cfgErr != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "get configuration file: %v\n", cfgErr)
 		os.Exit(1)

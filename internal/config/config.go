@@ -124,3 +124,38 @@ func (cfg *Config) Validate() error {
 	}
 	return nil
 }
+
+func FindConfig(flagPath string) string {
+	if flagPath != "" {
+		clog.Info("get config by FLAG")
+		return flagPath
+	}
+	//IFS_CONFIG_PATH=/home/user/my.toml ./inFolderSort
+	//
+	//# Або експортувати в сесію:
+	//export IFS_CONFIG_PATH=/home/user/my.toml ./inFolderSort
+	if envPath := os.Getenv("IFS_CONFIG_PATH"); envPath != "" {
+		clog.Info("get config by ENV")
+		return envPath
+	}
+	defaultPaths := []string{
+		"./inFolderSort/config/config.toml",
+		"$XDG_CONFIG_HOME/inFolderSort/config.toml",
+		"~/.config/inFolderSort/config.toml",
+		"/etc/inFolderSort/config.toml",
+	}
+	for _, p := range defaultPaths {
+		defaultPath := os.ExpandEnv(p)
+		if _, err := os.Stat(defaultPath); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			clog.Error("get error when try to get config file",
+				"error", err)
+		}
+		clog.Info("get config by DEFAULT PATH")
+		return defaultPath
+	}
+	// Провокуєм embedded
+	return ""
+}
