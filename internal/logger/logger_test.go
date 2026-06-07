@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"log/slog"
 	"path/filepath"
 	"testing"
@@ -45,10 +46,10 @@ func TestGetHandler_FiltersByLevel(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if handler.Enabled(nil, slog.LevelInfo) {
+	if handler.Enabled(context.TODO(), slog.LevelInfo) {
 		t.Error("handler should NOT be enabled for Info (only Error was configured)")
 	}
-	if !handler.Enabled(nil, slog.LevelError) {
+	if !handler.Enabled(context.TODO(), slog.LevelError) {
 		t.Error("handler should be enabled for Error")
 	}
 }
