@@ -1,3 +1,7 @@
+scan_dir = "path/to/scanDir"
+logs_dir = "path/to/logs"
+workers = 3
+
 [rules.Name1]
 target_path = "path/to/Name1"
 extensions = [".jpg", ".png", ".gif"]

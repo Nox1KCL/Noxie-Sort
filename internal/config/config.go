@@ -1,3 +1,4 @@
+// Package config provides configuration for the InFolderSort application.
 package config
 
 import (
@@ -20,9 +21,11 @@ var defaultConfig []byte
 
 type Config struct {
 	ScanDir       string                `toml:"scan_dir"`
+	LogsDir       string                `toml:"logs_dir"`
+	Workers       int                   `toml:"workers"`
 	Rules         map[string]FolderRule `toml:"rules"`
 	InvertedRules map[string]string
-	Logger        logger.LumberConfig `toml:"logger"`
+	Logger        logger.LumberConfig   `toml:"logger"`
 }
 
 type FolderRule struct {
@@ -62,6 +65,19 @@ func (cfg *Config) Prepare() error {
 	}
 
 	cfg.ScanDir = filepath.Clean(os.ExpandEnv(cfg.ScanDir))
+
+    if cfg.LogsDir != "" {
+        if !filepath.IsAbs(cfg.LogsDir) {
+            cwd, err := os.Getwd()
+            if err != nil {
+                return fmt.Errorf("getting working directory: %w", err)
+            }
+            cfg.LogsDir = filepath.Join(cwd, cfg.LogsDir)
+        }
+    } else {
+        cfg.LogsDir = "logs" // fallback
+    }
+
 	cfg.InvertConfig()
 	return nil
 }
@@ -130,7 +146,6 @@ func (cfg *Config) Validate() error {
 
 func FindConfig(flagPath string) string {
 	if flagPath != "" {
-		clog.Info("get config by FLAG")
 		return flagPath
 	}
 	//IFS_CONFIG_PATH=/home/user/my.toml ./inFolderSort
@@ -138,39 +153,25 @@ func FindConfig(flagPath string) string {
 	//# Або експортувати в сесію:
 	//export IFS_CONFIG_PATH=/home/user/my.toml ./inFolderSort
 	if envPath := os.Getenv("IFS_CONFIG_PATH"); envPath != "" {
-		clog.Info("get config by ENV")
 		return envPath
 	}
 
 	defaultPaths := []string{
 		"config.toml",
-		os.ExpandEnv("$HOME/inFolderSort/config.toml"),
-		"/etc/inFolderSort/config.toml",
+		os.ExpandEnv("$HOME/InFolderSort/config.toml"),
+		"/etc/InFolderSort/config.toml",
 	}
 
 	configDir, err := os.UserConfigDir()
-	if err != nil {
-		clog.Error("unable to get system config directory",
-			"error", err)
-	} else {
-		defaultPaths = append(defaultPaths, filepath.Join(configDir, "inFolderSort", "config.toml"))
+	if err == nil {
+	    defaultPaths = append(defaultPaths, filepath.Join(configDir, "InFolderSort", "config.toml"))
 	}
 
 	for _, p := range defaultPaths {
 		defaultPath := os.ExpandEnv(p)
-		if _, err := os.Stat(defaultPath); err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				clog.Debug("checking default paths", "error", err)
-				continue
-			}
-			clog.Error("get error when try to get config file",
-				"error", err)
+		if _, err := os.Stat(defaultPath); err == nil {
+			return defaultPath
 		}
-		clog.Info("get config by DEFAULT PATH",
-			"path", defaultPaths)
-		return defaultPath
 	}
-	// Провокуєм embedded
-	clog.Debug("no config file found on disk, returning empty path")
 	return ""
 }

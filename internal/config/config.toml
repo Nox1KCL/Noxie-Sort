@@ -1,4 +1,6 @@
 scan_dir = "$HOME/Downloads/"
+logs_dir = "./logs"
+workers = 3
 
 [rules.Images]
 target_path = "$HOME/Downloads/Images"
