@@ -1,3 +1,4 @@
+// Package tui provides the terminal user interface for the InFolderSort application.
 package tui
 
 import (
@@ -43,7 +44,7 @@ func performSort(sorter *files.Sorter) error {
 		return fmt.Errorf("path is not a directory: %q", fileInfo.Name())
 	}
 
-	report, err := files.InDirSorting(sorter)
+	report, err := sorter.InDirSorting()
 	if err != nil {
 		return fmt.Errorf("directory sorting error: %w", err)
 	}

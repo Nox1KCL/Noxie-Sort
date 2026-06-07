@@ -1,3 +1,4 @@
+// Package files provides utilities for file operations used in the InFolderSort application.
 package files
 
 import (
@@ -161,18 +162,17 @@ func (s *Sorter) Execute() (SortResult, error) {
 	return report, nil
 }
 
-// TODO: зробити методом
-func InDirSorting(sorter *Sorter) (SortResult, error) {
+func (s *Sorter) InDirSorting() (SortResult, error) {
 
-	if err := sorter.Scan(); err != nil {
-		return SortResult{}, fmt.Errorf("scanning directory %q: %w", sorter.ScanDir, err)
+	if err := s.Scan(); err != nil {
+		return SortResult{}, fmt.Errorf("scanning directory %q: %w", s.ScanDir, err)
 	}
-	if err := sorter.Plan(); err != nil {
+	if err := s.Plan(); err != nil {
 		return SortResult{}, fmt.Errorf("planning sorting: %w", err)
 	}
 
-	if report, err := sorter.Execute(); err != nil {
-		report.Errors = append(report.Errors, sorter.Errors...)
+	if report, err := s.Execute(); err != nil {
+		report.Errors = append(report.Errors, s.Errors...)
 		return report, fmt.Errorf("executing sorting: %w", err)
 	} else {
 		return report, nil
@@ -228,4 +228,12 @@ func RenameFile(file string) string {
 	timestamp := time.Now().Format("20060102_150405")
 	newName := fmt.Sprintf("%s_%s%s", name, timestamp, ext)
 	return newName
+}
+
+func ExecutableDir() string {
+    exe, err := os.Executable()
+    if err != nil {
+        return "."
+    }
+    return filepath.Dir(exe)
 }
