@@ -1,4 +1,7 @@
 .idea/
 logs/
 internal/config/config.toml
-.antigravity/
+.antigravitycli/
+__debug_bin*
+.zed/
+app
