@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 
@@ -24,18 +25,18 @@ func main() {
 	flag.BoolVar(&isDaemon, "daemon", false, "run as daemon")
 	flag.Parse()
 
-	path := config.FindConfig(configPath)
-	cfg, cfgErr := config.GetConfig(path)
+	foundPath := config.FindConfig(configPath)
+	cfg, cfgErr := config.GetConfig(foundPath)
 	if cfgErr != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "get configuration file: %v\n", cfgErr)
 		os.Exit(1)
 	}
 
 	levels := map[slog.Level]string{
-		slog.LevelInfo:  "logs/info.log",
-		slog.LevelError: "logs/error.log",
-		slog.LevelWarn:  "logs/warn.log",
-		slog.LevelDebug: "logs/debug.log",
+		slog.LevelInfo:  filepath.Join(cfg.LogsDir, "info.log"),
+		slog.LevelDebug: filepath.Join(cfg.LogsDir, "debug.log"),
+		slog.LevelWarn:  filepath.Join(cfg.LogsDir, "warn.log"),
+		slog.LevelError: filepath.Join(cfg.LogsDir, "error.log"),
 	}
 	handler, logErr := logger.GetHandler(&cfg.Logger, levels)
 	if logErr != nil {
@@ -44,6 +45,12 @@ func main() {
 	}
 	slog.SetDefault(slog.New(handler))
 	mlog := slog.With("module", "main")
+
+	if foundPath != "" {
+		mlog.Info("config file found", "path", foundPath)
+	} else {
+		mlog.Info("using embedded default config")
+	}
 
 	mlog.Info("configuration initialized",
 		"config_path", configPath,
@@ -57,10 +64,9 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	wg := sync.WaitGroup{}
-	numWorkers := 3
 	jobs := make(chan string, 100)
 
-	for i := 0; i < numWorkers; i++ {
+	for i := 0; i < cfg.Workers; i++ {
 		wg.Add(1)
 		go watcher.Worker(jobs, &wg, cfg)
 	}
