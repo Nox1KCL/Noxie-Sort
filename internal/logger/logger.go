@@ -1,3 +1,4 @@
+// Package logger provides logging utilities for the InFolderSort application.
 package logger
 
 import (
