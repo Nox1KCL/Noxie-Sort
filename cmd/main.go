@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/Nox1KCL/InFolderSort/internal/config"
 	"github.com/Nox1KCL/InFolderSort/internal/logger"
@@ -21,17 +22,22 @@ func main() {
 		configPath string
 		isDaemon   bool
 	)
+    const (
+        pollingTime = 5 * time.Second
+        maxTries = 10
+    )
+
 	flag.StringVar(&configPath, "config", "", "path to config file (uses embedded default if empty)")
 	flag.BoolVar(&isDaemon, "daemon", false, "run as daemon")
 	flag.Parse()
-	
+
 	foundPath := config.FindConfig(configPath)
 	cfg, cfgErr := config.GetConfig(foundPath)
 	if cfgErr != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "get configuration file: %v\n", cfgErr)
 		os.Exit(1)
 	}
-	
+
 	levels := map[slog.Level]string{
 		slog.LevelInfo:  filepath.Join(cfg.LogsDir, "info.log"),
 		slog.LevelDebug: filepath.Join(cfg.LogsDir, "debug.log"),
@@ -56,10 +62,10 @@ func main() {
 		"config_path", configPath,
 		"rules_count", len(cfg.Rules),
 	)
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -68,7 +74,7 @@ func main() {
 
 	for i := 0; i < cfg.Workers; i++ {
 		wg.Add(1)
-		go watcher.Worker(jobs, &wg, cfg)
+		go watcher.Worker(jobs, &wg, cfg, pollingTime, maxTries)
 	}
 
 	var scannerWg sync.WaitGroup

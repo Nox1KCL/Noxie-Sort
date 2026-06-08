@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/Nox1KCL/InFolderSort/internal/config"
 	"github.com/Nox1KCL/InFolderSort/internal/files"
@@ -15,7 +16,7 @@ import (
 var snlog = slog.With("module", "scanner")
 
 func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
-	watcher, err := fsnotify.NewWatcher()
+    watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		snlog.Error("failed to initialize watcher",
 			"error", err)
@@ -44,7 +45,8 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 			}
 			if event.Has(fsnotify.Create) || event.Has(fsnotify.Write) {
 				snlog.Debug("event", "event", event)
-				if isValid := files.FileExtValidate(event.Name); isValid {
+				fileName := filepath.Base(event.Name)
+				if isValid := files.FileExtValidate(fileName); isValid {
     				select {
     				case jobs <- event.Name:
     				case <-ctx.Done():
@@ -63,15 +65,26 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 	}
 }
 
-func Worker(jobs <-chan string, wg *sync.WaitGroup, cfg *config.Config) {
+func Worker(jobs <-chan string, wg *sync.WaitGroup, cfg *config.Config, waitInterval time.Duration, maxRetries int) {
 	defer wg.Done()
 
-	//TODO: Size validate
+
 	for j := range jobs {
+	    err := files.FileSizePolling(j, waitInterval, maxRetries)
+			if err != nil {
+			    snlog.Debug("file size polling failed",
+					"error", err,
+					"file", j)
+			    continue
+			}
+		if files.IsFileLocked(j) {
+			snlog.Debug("file is locked, skipping", "file", j)
+			continue
+		}
 		localSorter := files.NewSorter(cfg)
 		fileName := filepath.Base(j)
-//workerResults = append(workerResults, sortRes)
-		_, err := localSorter.SelectiveSorting(fileName)
+
+		_, err = localSorter.SelectiveSorting(fileName)
 		if err != nil {
 			snlog.Error("sorting failed",
 				"error", err)

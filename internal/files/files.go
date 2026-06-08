@@ -194,6 +194,40 @@ func (s *Sorter) SelectiveSorting(fileName string) (SortResult, error) {
 	}
 }
 
+func FileSizePolling(filePath string, waitInterval time.Duration, maxRetries int) error {
+    var lastSize int64 = -1
+    retries := 0
+
+    for {
+        info, err := os.Stat(filePath)
+        if err != nil {
+            flog.Warn("failed to stat file",
+                "file", filePath,
+                "error", err)
+            return fmt.Errorf("failed to stat file: %w", err)
+        }
+
+        currentSize := info.Size()
+        if currentSize == lastSize {
+            time.Sleep(waitInterval)
+            if currentSize == lastSize {
+                return nil
+            }
+        }
+
+        lastSize = currentSize
+        retries++
+        if retries > maxRetries {
+            flog.Warn("file size polling time out",
+                "file", filePath,
+                "retries", retries)
+            return fmt.Errorf("file size polling timed out after %d retries: %s", maxRetries, filePath)
+        }
+
+        time.Sleep(waitInterval)
+    }
+}
+
 func GetDownloadsPath() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -223,6 +257,15 @@ func IsFileExist(path string) (bool, error) {
 	return false, fmt.Errorf("checking file %q: %w", path, err)
 }
 
+func IsFileLocked(path string) bool {
+    file, err := os.OpenFile(path, os.O_RDWR, 0666)
+    if err != nil {
+        return true
+    }
+    file.Close()
+    return false
+}
+
 func FileExtValidate(fileName string) bool {
 	if strings.HasPrefix(fileName, "~$") || strings.HasPrefix(fileName, ".~lock.") {
 		return false
@@ -234,11 +277,11 @@ func FileExtValidate(fileName string) bool {
 	if ext == "" {
 		return false
 	}
-	
+
 	if ext == ".tmp" || ext == ".crdownload" || ext == ".part" {
 		return false
 	}
-	
+
 	return true
 }
 
