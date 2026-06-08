@@ -44,10 +44,12 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 			}
 			if event.Has(fsnotify.Create) || event.Has(fsnotify.Write) {
 				snlog.Debug("event", "event", event)
-				select {
-				case jobs <- event.Name:
-				case <-ctx.Done():
-					return
+				if isValid := files.FileExtValidate(event.Name); isValid {
+    				select {
+    				case jobs <- event.Name:
+    				case <-ctx.Done():
+    					return
+    				}
 				}
 			}
 

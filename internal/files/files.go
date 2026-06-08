@@ -223,6 +223,25 @@ func IsFileExist(path string) (bool, error) {
 	return false, fmt.Errorf("checking file %q: %w", path, err)
 }
 
+func FileExtValidate(fileName string) bool {
+	if strings.HasPrefix(fileName, "~$") || strings.HasPrefix(fileName, ".~lock.") {
+		return false
+	}
+
+	fileExt := filepath.Ext(fileName)
+	ext := strings.ToLower(strings.TrimSpace(fileExt))
+
+	if ext == "" {
+		return false
+	}
+	
+	if ext == ".tmp" || ext == ".crdownload" || ext == ".part" {
+		return false
+	}
+	
+	return true
+}
+
 func RenameFile(file string) string {
 	ext := filepath.Ext(file)
 	name := strings.TrimSuffix(file, ext)
