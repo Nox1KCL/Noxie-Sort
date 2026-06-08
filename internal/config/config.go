@@ -14,10 +14,10 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
-var clog = slog.With("module", "config")
-
 //go:embed config.toml
 var defaultConfig []byte
+
+var clog = slog.With("module", "config")
 
 type Config struct {
 	ScanDir       string                `toml:"scan_dir"`
@@ -46,7 +46,7 @@ func GetConfig(path string) (*Config, error) {
 		clog.Info("no config file provided, using default config")
 		doc = defaultConfig
 	}
-
+	
 	var cfg Config
 
 	if err := toml.Unmarshal(doc, &cfg); err != nil {
@@ -60,7 +60,7 @@ func GetConfig(path string) (*Config, error) {
 }
 
 func (cfg *Config) Prepare() error {
-	if err := cfg.Validate(); err != nil {
+	if err := cfg.ConfigExtValidate(); err != nil {
 		return err
 	}
 
@@ -105,7 +105,7 @@ func (cfg *Config) GetTargetPath(fileExt string) (string, error) {
 	return "", fmt.Errorf("ext isn't in config: %s", fileExt)
 }
 
-func (cfg *Config) Validate() error {
+func (cfg *Config) ConfigExtValidate() error {
 	seenExtensions := make(map[string]string)
 	var conflicts []error
 

@@ -1,3 +1,4 @@
+// Package watcher provides functionality for scanning directories and watching for file changes.
 package watcher
 
 import (
@@ -62,17 +63,17 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 
 func Worker(jobs <-chan string, wg *sync.WaitGroup, cfg *config.Config) {
 	defer wg.Done()
-	//var workerResults []files.SortResult
 
+	//TODO: Size validate
 	for j := range jobs {
 		localSorter := files.NewSorter(cfg)
 		fileName := filepath.Base(j)
-
+//workerResults = append(workerResults, sortRes)
 		_, err := localSorter.SelectiveSorting(fileName)
 		if err != nil {
 			snlog.Error("sorting failed",
 				"error", err)
 		}
-		//workerResults = append(workerResults, sortRes)
+
 	}
 }

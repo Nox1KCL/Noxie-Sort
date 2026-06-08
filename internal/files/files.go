@@ -182,6 +182,7 @@ func (s *Sorter) InDirSorting() (SortResult, error) {
 func (s *Sorter) SelectiveSorting(fileName string) (SortResult, error) {
 	s.Files = append(s.Files, FileInfo{s.ScanDir, fileName})
 
+	//TODO: IsFileLocked
 	if err := s.Plan(); err != nil {
 		return SortResult{}, fmt.Errorf("planning sorting: %w", err)
 	}

@@ -18,7 +18,7 @@ func TestValidate_NoErrors(t *testing.T) {
 		},
 	}
 
-	if err := cfg.Validate(); err != nil {
+	if err := cfg.ConfigExtValidate(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -33,7 +33,7 @@ func TestValidate_EmptyExtension(t *testing.T) {
 		},
 	}
 
-	if err := cfg.Validate(); err == nil {
+	if err := cfg.ConfigExtValidate(); err == nil {
 		t.Fatal("expected error for empty extension, got nil")
 	}
 }
@@ -48,7 +48,7 @@ func TestValidate_MissingDot(t *testing.T) {
 		},
 	}
 
-	if err := cfg.Validate(); err == nil {
+	if err := cfg.ConfigExtValidate(); err == nil {
 		t.Fatal("expected error for extension without dot, got nil")
 	}
 }
@@ -67,7 +67,7 @@ func TestValidate_DuplicateExtension(t *testing.T) {
 		},
 	}
 
-	if err := cfg.Validate(); err == nil {
+	if err := cfg.ConfigExtValidate(); err == nil {
 		t.Fatal("expected error for duplicate extension, got nil")
 	}
 }
