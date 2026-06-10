@@ -72,7 +72,7 @@ func main() {
 	wg := sync.WaitGroup{}
 	jobs := make(chan string, 100)
 
-	for i := 0; i < cfg.Workers; i++ {
+	for range cfg.Workers {
 		wg.Add(1)
 		go watcher.Worker(jobs, &wg, cfg, pollingTime, maxTries)
 	}

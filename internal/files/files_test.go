@@ -1,10 +1,14 @@
 package files
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/Nox1KCL/InFolderSort/internal/config"
 )
@@ -282,4 +286,92 @@ func TestRenameFile_NoExtension(t *testing.T) {
 	if strings.HasSuffix(result, ".") {
 		t.Errorf("should not end with dot, got %q", result)
 	}
+}
+
+func TestFileExt_Validate(t *testing.T) {
+    tests := []struct {
+        name     string
+        expected bool
+    }{
+        {"test1.txt", true},
+        {"femboyies.tmp", false},
+        {"davidPivo", false},
+        {"~$Fdf", false},
+        {"lolol.docx", true},
+        {"~lock.fd.docx", true},
+        {".~lock.fd.docx", false},
+        {"locked.doc", true},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            actual := FileExtValidate(tt.name)
+            if actual != tt.expected {
+                t.Errorf("FileExtValidate(%q) = %v; want %v", tt.name, actual, tt.expected)
+            }
+        })
+    }
+}
+
+func TestFileLock(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "tetraed.txt")
+
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+	if err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+	defer file.Close()
+
+	err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	if err != nil {
+		t.Fatalf("failed to lock file: %v", err)
+	}
+	defer syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+
+	for i := 1; i <= 5; i++ {
+		data := fmt.Sprintf("Datas №%d\n", i)
+		_, _ = file.WriteString(data)
+		file.Sync()
+
+		if isValid := IsFileLocked(path); !isValid {
+			t.Errorf("file should be locked during write: Value: %t | Path: %q", isValid, path)
+		}
+
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
+func TestFileSizePolling(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "googl.docx")
+
+	var (
+		initialSize  int64 = 1 * 1024 * 1024
+		waitInterval       = 100 * time.Millisecond
+		maxRetries         = 5
+	)
+
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+	defer file.Close()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := FileSizePolling(path, waitInterval, maxRetries)
+		if err != nil {
+			t.Errorf("FileSizePolling failed: %v", err)
+		}
+	}()
+
+	for i := range 5 {
+		_ = file.Truncate(initialSize + int64(i)*1024*1024)
+		time.Sleep(50 * time.Millisecond)
+		t.Logf("Test iteration %d completed", i)
+	}
+	wg.Wait()
 }

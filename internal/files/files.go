@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/Nox1KCL/InFolderSort/internal/config"
@@ -194,6 +195,7 @@ func (s *Sorter) SelectiveSorting(fileName string) (SortResult, error) {
 	}
 }
 
+// TEST
 func FileSizePolling(filePath string, waitInterval time.Duration, maxRetries int) error {
     var lastSize int64 = -1
     retries := 0
@@ -258,12 +260,21 @@ func IsFileExist(path string) (bool, error) {
 }
 
 func IsFileLocked(path string) bool {
-    file, err := os.OpenFile(path, os.O_RDWR, 0666)
-    if err != nil {
-        return true
-    }
-    file.Close()
-    return false
+	file, err := os.OpenFile(path, os.O_RDWR, 0666)
+	if err != nil {
+		return true
+	}
+	defer file.Close()
+
+	err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	if err != nil {
+		if errors.Is(err, syscall.EWOULDBLOCK) || errors.Is(err, syscall.EAGAIN) {
+			return true
+		}
+	}
+	_ = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+
+	return false
 }
 
 func FileExtValidate(fileName string) bool {
