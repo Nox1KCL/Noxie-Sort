@@ -34,11 +34,12 @@ type MoveTask struct {
 }
 
 type Sorter struct {
-	Config  *config.Config
-	ScanDir string
-	Files   []FileInfo
-	Tasks   []MoveTask
-	Errors  []error
+	Config   *config.Config
+	ScanDir  string
+	ScanDirs []string
+	Files    []FileInfo
+	Tasks    []MoveTask
+	Errors   []error
 }
 
 func NewSorter(cfg *config.Config) *Sorter {
@@ -46,6 +47,7 @@ func NewSorter(cfg *config.Config) *Sorter {
 	return &Sorter{
 		Config:  cfg,
 		ScanDir: cfg.ScanDir,
+		ScanDirs: make([]string, 0),
 		Files:   make([]FileInfo, 0),
 		Tasks:   make([]MoveTask, 0),
 		Errors:  make([]error, 0),

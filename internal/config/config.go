@@ -65,6 +65,9 @@ func (cfg *Config) Prepare() error {
 	}
 
 	cfg.ScanDir = filepath.Clean(os.ExpandEnv(cfg.ScanDir))
+	for i := range cfg.ScanDirs {
+		cfg.ScanDirs[i] = filepath.Clean(os.ExpandEnv(cfg.ScanDirs[i]))
+	}
 
     if cfg.LogsDir != "" {
         if !filepath.IsAbs(cfg.LogsDir) {
