@@ -21,8 +21,8 @@ var clog = slog.With("module", "config")
 
 type Config struct {
 	ScanDir       string                `toml:"scan_dir"`
+	ScanDirs      []string              `toml:"scan_dirs"`
 	LogsDir       string                `toml:"logs_dir"`
-	Workers       int                   `toml:"workers"`
 	Rules         map[string]FolderRule `toml:"rules"`
 	InvertedRules map[string]string
 	Logger        logger.LumberConfig   `toml:"logger"`
@@ -46,7 +46,7 @@ func GetConfig(path string) (*Config, error) {
 		clog.Info("no config file provided, using default config")
 		doc = defaultConfig
 	}
-	
+
 	var cfg Config
 
 	if err := toml.Unmarshal(doc, &cfg); err != nil {
