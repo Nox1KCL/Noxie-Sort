@@ -68,7 +68,6 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 func Worker(jobs <-chan string, wg *sync.WaitGroup, cfg *config.Config, waitInterval time.Duration, maxRetries int) {
 	defer wg.Done()
 
-
 	for j := range jobs {
 	    err := files.FileSizePolling(j, waitInterval, maxRetries)
 			if err != nil {
@@ -82,9 +81,8 @@ func Worker(jobs <-chan string, wg *sync.WaitGroup, cfg *config.Config, waitInte
 			continue
 		}
 		localSorter := files.NewSorter(cfg)
-		fileName := filepath.Base(j)
 
-		_, err = localSorter.SelectiveSorting(fileName)
+		_, err = localSorter.SelectiveSorting(j)
 		if err != nil {
 			snlog.Error("sorting failed",
 				"error", err)

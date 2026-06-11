@@ -165,6 +165,7 @@ func (s *Sorter) Execute() (SortResult, error) {
 	return report, nil
 }
 
+//TODO: Rename
 func (s *Sorter) InDirSorting() (SortResult, error) {
 
 	if err := s.Scan(); err != nil {
@@ -182,10 +183,10 @@ func (s *Sorter) InDirSorting() (SortResult, error) {
 	}
 }
 
-func (s *Sorter) SelectiveSorting(fileName string) (SortResult, error) {
-	s.Files = append(s.Files, FileInfo{s.ScanDir, fileName})
+func (s *Sorter) SelectiveSorting(filePath string) (SortResult, error) {
+    scanDir, fileName := filepath.Split(filePath)
+	s.Files = append(s.Files, FileInfo{scanDir, fileName})
 
-	//TODO: IsFileLocked
 	if err := s.Plan(); err != nil {
 		return SortResult{}, fmt.Errorf("planning sorting: %w", err)
 	}
