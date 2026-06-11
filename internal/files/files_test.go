@@ -202,7 +202,7 @@ func TestSelectiveSorting(t *testing.T) {
 	cfg.Prepare()
 
 	sorter := NewSorter(cfg)
-	report, err := sorter.SelectiveSorting("doc.pdf")
+	report, err := sorter.SelectiveSorting(filepath.Join(dir, "doc.pdf"))
 
 	if err != nil {
 		t.Fatalf("SelectiveSorting failed: %v", err)

@@ -25,11 +25,12 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 	defer watcher.Close()
 	snlog.Info("watcher initialized")
 
-	err = watcher.Add(cfg.ScanDir)
-	if err != nil {
+	for _, dir := range cfg.ScanDirs {
+		err = watcher.Add(dir)
+		if err != nil {
 		snlog.Error("failed to add watch directory",
 			"error", err,
-			"dir", cfg.ScanDir)
+			"dir", dir)
 		return
 	}
 
@@ -64,18 +65,19 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 		}
 	}
 }
+}
 
 func Worker(jobs <-chan string, wg *sync.WaitGroup, cfg *config.Config, waitInterval time.Duration, maxRetries int) {
 	defer wg.Done()
 
 	for j := range jobs {
 	    err := files.FileSizePolling(j, waitInterval, maxRetries)
-			if err != nil {
-			    snlog.Debug("file size polling failed",
-					"error", err,
-					"file", j)
-			    continue
-			}
+		if err != nil {
+		    snlog.Debug("file size polling failed",
+				"error", err,
+				"file", j)
+		    continue
+		}
 		if files.IsFileLocked(j) {
 			snlog.Debug("file is locked, skipping", "file", j)
 			continue
