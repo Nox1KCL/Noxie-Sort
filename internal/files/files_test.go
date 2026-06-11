@@ -5,12 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/Nox1KCL/InFolderSort/internal/config"
+	"github.com/Nox1KCL/InFolderSort/internal/syncutils"
 )
 
 func TestInDirSorting_Basic(t *testing.T) {
@@ -358,15 +358,14 @@ func TestFileSizePolling(t *testing.T) {
 	}
 	defer file.Close()
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := FileSizePolling(path, waitInterval, maxRetries)
-		if err != nil {
-			t.Errorf("FileSizePolling failed: %v", err)
-		}
-	}()
+	wg := syncutils.MyWaitGroup{}
+
+	wg.Go(func(){
+    	err := FileSizePolling(path, waitInterval, maxRetries)
+    	if err != nil {
+    		t.Errorf("FileSizePolling failed: %v", err)
+    	}
+	})
 
 	for i := range 5 {
 		_ = file.Truncate(initialSize + int64(i)*1024*1024)

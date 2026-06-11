@@ -14,6 +14,7 @@ import (
 
 	"github.com/Nox1KCL/InFolderSort/internal/config"
 	"github.com/Nox1KCL/InFolderSort/internal/logger"
+	"github.com/Nox1KCL/InFolderSort/internal/syncutils"
 	"github.com/Nox1KCL/InFolderSort/internal/watcher"
 )
 
@@ -77,12 +78,11 @@ func main() {
 		go watcher.Worker(jobs, &wg, cfg, pollingTime, maxTries)
 	}
 
-	var scannerWg sync.WaitGroup
-	scannerWg.Add(1)
-	go func() {
-		defer scannerWg.Done()
-		watcher.Scanner(ctx, cfg, jobs)
-	}()
+	var scannerWg syncutils.MyWaitGroup
+	scannerWg.Go(func(){
+	    watcher.Scanner(ctx, cfg, jobs)
+	})
+
 
 	sig := <-sigChan
 	mlog.Warn("received stop signal, shutting down gracefully",

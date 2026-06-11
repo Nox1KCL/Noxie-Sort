@@ -75,7 +75,7 @@ func (cfg *Config) Prepare() error {
             cfg.LogsDir = filepath.Join(cwd, cfg.LogsDir)
         }
     } else {
-        cfg.LogsDir = "logs" // fallback
+        cfg.LogsDir = "logs"
     }
 
 	cfg.InvertConfig()
