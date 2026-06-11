@@ -195,7 +195,6 @@ func (s *Sorter) SelectiveSorting(fileName string) (SortResult, error) {
 	}
 }
 
-// TEST
 func FileSizePolling(filePath string, waitInterval time.Duration, maxRetries int) error {
     var lastSize int64 = -1
     retries := 0
