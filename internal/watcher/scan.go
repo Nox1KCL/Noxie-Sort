@@ -32,6 +32,7 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 			"error", err,
 			"dir", dir)
 		return
+		}
 	}
 
 	for {
@@ -65,7 +66,7 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 		}
 	}
 }
-}
+
 
 func Worker(jobs <-chan string, wg *sync.WaitGroup, cfg *config.Config, waitInterval time.Duration, maxRetries int) {
 	defer wg.Done()

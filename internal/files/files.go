@@ -185,6 +185,8 @@ func (s *Sorter) InDirSorting() (SortResult, error) {
 
 func (s *Sorter) SelectiveSorting(filePath string) (SortResult, error) {
     scanDir, fileName := filepath.Split(filePath)
+    s.ScanDir = filepath.Clean(scanDir)
+
 	s.Files = append(s.Files, FileInfo{scanDir, fileName})
 
 	if err := s.Plan(); err != nil {
