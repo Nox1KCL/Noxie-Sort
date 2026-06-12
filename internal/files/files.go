@@ -198,7 +198,11 @@ func (s *Sorter) SelectiveSorting(filePath string) (SortResult, error) {
 func FileSizePolling(filePath string, waitInterval time.Duration, maxRetries int) error {
 	var lastSize int64 = -1
 	retries := 0
-
+	err := MicroPolling(filePath, waitInterval/5)
+	if err == nil {
+		return nil
+	}
+	 
 	for {
 		info, err := os.Stat(filePath)
 		if err != nil {
@@ -211,7 +215,8 @@ func FileSizePolling(filePath string, waitInterval time.Duration, maxRetries int
 		currentSize := info.Size()
 		if currentSize == lastSize {
 			time.Sleep(waitInterval)
-			if currentSize == lastSize {
+			info2, err := os.Stat(filePath)
+			if err == nil && info2.Size() == currentSize {
 				return nil
 			}
 		}
@@ -227,6 +232,31 @@ func FileSizePolling(filePath string, waitInterval time.Duration, maxRetries int
 
 		time.Sleep(waitInterval)
 	}
+}
+
+func MicroPolling(filePath string, waitInterval time.Duration) error {
+	info1, err := os.Stat(filePath)
+	if err != nil {
+		flog.Warn("failed to stat file",
+			"file", filePath,
+			"error", err)
+		return err
+	}
+	currentSize := info1.Size()
+
+	time.Sleep(waitInterval)
+
+	info2, err := os.Stat(filePath)
+	if err != nil {
+		return err
+	}
+	delayedSize := info2.Size()
+
+	if currentSize == delayedSize {
+		return nil
+	}
+
+	return fmt.Errorf("file size micro-polling failed %q", filePath)
 }
 
 func GetDownloadsPath() (string, error) {
