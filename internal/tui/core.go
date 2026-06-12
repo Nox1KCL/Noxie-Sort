@@ -44,7 +44,7 @@ func performSort(sorter *files.Sorter) error {
 		return fmt.Errorf("path is not a directory: %q", fileInfo.Name())
 	}
 
-	report, err := sorter.InDirSorting()
+	report, err := sorter.OneTimeSorting()
 	if err != nil {
 		return fmt.Errorf("directory sorting error: %w", err)
 	}

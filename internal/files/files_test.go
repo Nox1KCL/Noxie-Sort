@@ -28,7 +28,7 @@ func TestInDirSorting_Basic(t *testing.T) {
 	cfg.Prepare()
 
 	sorter := NewSorter(cfg)
-	report, err := sorter.InDirSorting()
+	report, err := sorter.OneTimeSorting()
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

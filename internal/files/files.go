@@ -161,8 +161,7 @@ func (s *Sorter) Execute() (SortResult, error) {
 	return report, nil
 }
 
-// TODO: Rename
-func (s *Sorter) InDirSorting() (SortResult, error) {
+func (s *Sorter) OneTimeSorting() (SortResult, error) {
 
 	if err := s.Scan(); err != nil {
 		return SortResult{}, fmt.Errorf("scanning directory %q: %w", s.ScanDir, err)
