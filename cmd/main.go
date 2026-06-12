@@ -24,8 +24,8 @@ func main() {
 		isDaemon   bool
 	)
 	const (
-		pollingTime = 5 * time.Second
-		maxTries    = 10
+		pollingTime = 2 * time.Second
+		maxTries    = 5
 	)
 
 	flag.StringVar(&configPath, "config", "", "path to config file (uses embedded default if empty)")

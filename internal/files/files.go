@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -96,8 +98,8 @@ func (s *Sorter) Plan() error {
 			continue
 		}
 
-		fileLays := filepath.Join(s.ScanDir, fileName)
-		exist, err := IsFileExist(fileLays)
+		futurePath := filepath.Join(s.ScanDir, targetDir, fileName)
+		exist, err := IsFileExist(futurePath)
 		if err != nil {
 			flog.Error("checking file existence",
 				"file", fileName,
@@ -258,6 +260,12 @@ func IsFileExist(path string) (bool, error) {
 }
 
 func IsFileLocked(path string) bool {
+	if runtime.GOOS == "linux" {
+		if isOpen := IsFileOpenInLinux(path); isOpen {
+			return true
+		}
+	}
+
 	file, err := os.OpenFile(path, os.O_RDWR, 0666)
 	if err != nil {
 		return true
@@ -273,6 +281,13 @@ func IsFileLocked(path string) bool {
 	_ = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
 
 	return false
+}
+
+func IsFileOpenInLinux(path string) bool {
+	cmd := exec.Command("fuser", "-s", path)
+	err := cmd.Run()
+
+	return err == nil
 }
 
 func FileExtValidate(fileName string) bool {
