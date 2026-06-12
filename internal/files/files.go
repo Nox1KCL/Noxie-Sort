@@ -45,12 +45,12 @@ type Sorter struct {
 func NewSorter(cfg *config.Config) *Sorter {
 	flog.Info("creating sorter")
 	return &Sorter{
-		Config:  cfg,
-		ScanDir: cfg.ScanDir,
+		Config:   cfg,
+		ScanDir:  cfg.ScanDir,
 		ScanDirs: make([]string, 0),
-		Files:   make([]FileInfo, 0),
-		Tasks:   make([]MoveTask, 0),
-		Errors:  make([]error, 0),
+		Files:    make([]FileInfo, 0),
+		Tasks:    make([]MoveTask, 0),
+		Errors:   make([]error, 0),
 	}
 }
 
@@ -86,7 +86,7 @@ func (s *Sorter) Plan() error {
 	for _, file := range s.Files {
 		fileName := file.Name
 		fileExt := filepath.Ext(fileName)
-		targetPath, err := s.Config.GetTargetPath(fileExt)
+		targetDir, err := s.Config.GetTargetPath(fileExt)
 		if err != nil {
 			flog.Warn("file extension not found in config",
 				"file", fileName,
@@ -96,18 +96,12 @@ func (s *Sorter) Plan() error {
 			continue
 		}
 
-		var savePath string
-		if filepath.IsAbs(targetPath) {
-			savePath = targetPath
-		} else {
-			savePath = filepath.Join(s.ScanDir, targetPath)
-		}
-
-		exist, err := IsFileExist(filepath.Join(savePath, fileName))
+		fileLays := filepath.Join(s.ScanDir, fileName)
+		exist, err := IsFileExist(fileLays)
 		if err != nil {
-			flog.Warn("checking file existence",
+			flog.Error("checking file existence",
 				"file", fileName,
-				"path", savePath,
+				"path", targetDir,
 				"error", err)
 			s.Errors = append(s.Errors, err)
 			continue
@@ -119,7 +113,7 @@ func (s *Sorter) Plan() error {
 		}
 
 		sourcePath := filepath.Join(s.ScanDir, fileName)
-		destPath := filepath.Join(savePath, finalFileName)
+		destPath := filepath.Join(s.ScanDir, targetDir, finalFileName)
 		s.Tasks = append(s.Tasks, MoveTask{fileName, sourcePath, destPath})
 	}
 	return nil
@@ -165,7 +159,7 @@ func (s *Sorter) Execute() (SortResult, error) {
 	return report, nil
 }
 
-//TODO: Rename
+// TODO: Rename
 func (s *Sorter) InDirSorting() (SortResult, error) {
 
 	if err := s.Scan(); err != nil {
@@ -184,10 +178,10 @@ func (s *Sorter) InDirSorting() (SortResult, error) {
 }
 
 func (s *Sorter) SelectiveSorting(filePath string) (SortResult, error) {
-    scanDir, fileName := filepath.Split(filePath)
-    s.ScanDir = filepath.Clean(scanDir)
+	scanDir, fileName := filepath.Split(filePath)
+	s.ScanDir = filepath.Clean(scanDir)
 
-	s.Files = append(s.Files, FileInfo{scanDir, fileName})
+	s.Files = append(s.Files, FileInfo{s.ScanDir, fileName})
 
 	if err := s.Plan(); err != nil {
 		return SortResult{}, fmt.Errorf("planning sorting: %w", err)
@@ -201,37 +195,37 @@ func (s *Sorter) SelectiveSorting(filePath string) (SortResult, error) {
 }
 
 func FileSizePolling(filePath string, waitInterval time.Duration, maxRetries int) error {
-    var lastSize int64 = -1
-    retries := 0
+	var lastSize int64 = -1
+	retries := 0
 
-    for {
-        info, err := os.Stat(filePath)
-        if err != nil {
-            flog.Warn("failed to stat file",
-                "file", filePath,
-                "error", err)
-            return fmt.Errorf("failed to stat file: %w", err)
-        }
+	for {
+		info, err := os.Stat(filePath)
+		if err != nil {
+			flog.Warn("failed to stat file",
+				"file", filePath,
+				"error", err)
+			return fmt.Errorf("failed to stat file: %w", err)
+		}
 
-        currentSize := info.Size()
-        if currentSize == lastSize {
-            time.Sleep(waitInterval)
-            if currentSize == lastSize {
-                return nil
-            }
-        }
+		currentSize := info.Size()
+		if currentSize == lastSize {
+			time.Sleep(waitInterval)
+			if currentSize == lastSize {
+				return nil
+			}
+		}
 
-        lastSize = currentSize
-        retries++
-        if retries > maxRetries {
-            flog.Warn("file size polling time out",
-                "file", filePath,
-                "retries", retries)
-            return fmt.Errorf("file size polling timed out after %d retries: %s", maxRetries, filePath)
-        }
+		lastSize = currentSize
+		retries++
+		if retries > maxRetries {
+			flog.Warn("file size polling time out",
+				"file", filePath,
+				"retries", retries)
+			return fmt.Errorf("file size polling timed out after %d retries: %s", maxRetries, filePath)
+		}
 
-        time.Sleep(waitInterval)
-    }
+		time.Sleep(waitInterval)
+	}
 }
 
 func GetDownloadsPath() (string, error) {
@@ -309,9 +303,9 @@ func RenameFile(file string) string {
 }
 
 func ExecutableDir() string {
-    exe, err := os.Executable()
-    if err != nil {
-        return "."
-    }
-    return filepath.Dir(exe)
+	exe, err := os.Executable()
+	if err != nil {
+		return "."
+	}
+	return filepath.Dir(exe)
 }

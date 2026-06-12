@@ -3,15 +3,15 @@ scan_dirs = ["$HOME/Downloads/", "$HOME/Downloads/Sorting"]
 logs_dir = "./logs"
 
 [rules.Images]
-target_path = "$HOME/Downloads/Images"
+target_dir = "Images"
 extensions = [".jpg", ".png", ".gif"]
 
 [rules.Documents]
-target_path = "$HOME/Downloads/Documents"
+target_dir = "Documents"
 extensions = [".pdf", ".docx", ".txt"]
 
 [rules.Archives]
-target_path = "$HOME/Downloads/Archives"
+target_dir = "Archives"
 extensions = [".tar.gz"]
 
 [logger]

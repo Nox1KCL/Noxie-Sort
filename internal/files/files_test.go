@@ -21,8 +21,8 @@ func TestInDirSorting_Basic(t *testing.T) {
 	cfg := &config.Config{
 		ScanDir: dir,
 		Rules: map[string]config.FolderRule{
-			"Images": {TargetPath: "Images", Extensions: []string{".jpg"}},
-			"Docs":   {TargetPath: "Docs", Extensions: []string{".pdf"}},
+			"Images": {TargetDir: "Images", Extensions: []string{".jpg"}},
+			"Docs":   {TargetDir: "Docs", Extensions: []string{".pdf"}},
 		},
 	}
 	cfg.Prepare()
@@ -54,7 +54,7 @@ func TestSorter_ConflictResolution(t *testing.T) {
 	cfg := &config.Config{
 		ScanDir: dir,
 		Rules: map[string]config.FolderRule{
-			"Images": {TargetPath: "Images", Extensions: []string{".jpg"}},
+			"Images": {TargetDir: "Images", Extensions: []string{".jpg"}},
 		},
 	}
 	cfg.Prepare()
@@ -172,7 +172,7 @@ func TestSorter_Plan_AbsoluteTargetPath(t *testing.T) {
 	cfg := &config.Config{
 		ScanDir: dir,
 		Rules: map[string]config.FolderRule{
-			"Docs": {TargetPath: absTarget, Extensions: []string{".txt"}},
+			"Docs": {TargetDir: absTarget, Extensions: []string{".txt"}},
 		},
 	}
 	cfg.Prepare()
@@ -196,7 +196,7 @@ func TestSelectiveSorting(t *testing.T) {
 	cfg := &config.Config{
 		ScanDir: dir,
 		Rules: map[string]config.FolderRule{
-			"Docs": {TargetPath: "Docs", Extensions: []string{".pdf"}},
+			"Docs": {TargetDir: "Docs", Extensions: []string{".pdf"}},
 		},
 	}
 	cfg.Prepare()
@@ -289,28 +289,28 @@ func TestRenameFile_NoExtension(t *testing.T) {
 }
 
 func TestFileExt_Validate(t *testing.T) {
-    tests := []struct {
-        name     string
-        expected bool
-    }{
-        {"test1.txt", true},
-        {"femboyies.tmp", false},
-        {"davidPivo", false},
-        {"~$Fdf", false},
-        {"lolol.docx", true},
-        {"~lock.fd.docx", true},
-        {".~lock.fd.docx", false},
-        {"locked.doc", true},
-    }
+	tests := []struct {
+		name     string
+		expected bool
+	}{
+		{"test1.txt", true},
+		{"femboyies.tmp", false},
+		{"davidPivo", false},
+		{"~$Fdf", false},
+		{"lolol.docx", true},
+		{"~lock.fd.docx", true},
+		{".~lock.fd.docx", false},
+		{"locked.doc", true},
+	}
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            actual := FileExtValidate(tt.name)
-            if actual != tt.expected {
-                t.Errorf("FileExtValidate(%q) = %v; want %v", tt.name, actual, tt.expected)
-            }
-        })
-    }
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := FileExtValidate(tt.name)
+			if actual != tt.expected {
+				t.Errorf("FileExtValidate(%q) = %v; want %v", tt.name, actual, tt.expected)
+			}
+		})
+	}
 }
 
 func TestFileLock(t *testing.T) {
@@ -360,11 +360,11 @@ func TestFileSizePolling(t *testing.T) {
 
 	wg := syncutils.MyWaitGroup{}
 
-	wg.Go(func(){
-    	err := FileSizePolling(path, waitInterval, maxRetries)
-    	if err != nil {
-    		t.Errorf("FileSizePolling failed: %v", err)
-    	}
+	wg.Go(func() {
+		err := FileSizePolling(path, waitInterval, maxRetries)
+		if err != nil {
+			t.Errorf("FileSizePolling failed: %v", err)
+		}
 	})
 
 	for i := range 5 {

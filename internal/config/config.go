@@ -25,11 +25,11 @@ type Config struct {
 	LogsDir       string                `toml:"logs_dir"`
 	Rules         map[string]FolderRule `toml:"rules"`
 	InvertedRules map[string]string
-	Logger        logger.LumberConfig   `toml:"logger"`
+	Logger        logger.LumberConfig `toml:"logger"`
 }
 
 type FolderRule struct {
-	TargetPath string   `toml:"target_path"`
+	TargetDir  string   `toml:"target_dir"`
 	Extensions []string `toml:"extensions"`
 }
 
@@ -69,17 +69,17 @@ func (cfg *Config) Prepare() error {
 		cfg.ScanDirs[i] = filepath.Clean(os.ExpandEnv(cfg.ScanDirs[i]))
 	}
 
-    if cfg.LogsDir != "" {
-        if !filepath.IsAbs(cfg.LogsDir) {
-            cwd, err := os.Getwd()
-            if err != nil {
-                return fmt.Errorf("getting working directory: %w", err)
-            }
-            cfg.LogsDir = filepath.Join(cwd, cfg.LogsDir)
-        }
-    } else {
-        cfg.LogsDir = "logs"
-    }
+	if cfg.LogsDir != "" {
+		if !filepath.IsAbs(cfg.LogsDir) {
+			cwd, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("getting working directory: %w", err)
+			}
+			cfg.LogsDir = filepath.Join(cwd, cfg.LogsDir)
+		}
+	} else {
+		cfg.LogsDir = "logs"
+	}
 
 	cfg.InvertConfig()
 	return nil
@@ -92,10 +92,8 @@ func (cfg *Config) InvertConfig() {
 	cfg.InvertedRules = make(map[string]string)
 
 	for _, folderRule := range cfg.Rules {
-		expandedPath := os.ExpandEnv(folderRule.TargetPath)
-		finalPath := filepath.Clean(expandedPath)
 		for _, ext := range folderRule.Extensions {
-			cfg.InvertedRules[ext] = finalPath
+			cfg.InvertedRules[ext] = folderRule.TargetDir
 		}
 	}
 }
@@ -167,7 +165,7 @@ func FindConfig(flagPath string) string {
 
 	configDir, err := os.UserConfigDir()
 	if err == nil {
-	    defaultPaths = append(defaultPaths, filepath.Join(configDir, "InFolderSort", "config.toml"))
+		defaultPaths = append(defaultPaths, filepath.Join(configDir, "InFolderSort", "config.toml"))
 	}
 
 	for _, p := range defaultPaths {

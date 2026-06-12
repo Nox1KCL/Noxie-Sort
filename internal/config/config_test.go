@@ -8,11 +8,11 @@ func TestValidate_NoErrors(t *testing.T) {
 	cfg := &Config{
 		Rules: map[string]FolderRule{
 			"Images": {
-				TargetPath: "path/to/Images",
+				TargetDir:  "path/to/Images",
 				Extensions: []string{".jpg", ".png"},
 			},
 			"Docs": {
-				TargetPath: "path/to/Docs",
+				TargetDir:  "path/to/Docs",
 				Extensions: []string{".pdf", ".docx"},
 			},
 		},
@@ -27,7 +27,7 @@ func TestValidate_EmptyExtension(t *testing.T) {
 	cfg := &Config{
 		Rules: map[string]FolderRule{
 			"Empty": {
-				TargetPath: "path",
+				TargetDir:  "path",
 				Extensions: []string{""},
 			},
 		},
@@ -42,7 +42,7 @@ func TestValidate_MissingDot(t *testing.T) {
 	cfg := &Config{
 		Rules: map[string]FolderRule{
 			"NoDot": {
-				TargetPath: "path",
+				TargetDir:  "path",
 				Extensions: []string{"jpg"},
 			},
 		},
@@ -57,11 +57,11 @@ func TestValidate_DuplicateExtension(t *testing.T) {
 	cfg := &Config{
 		Rules: map[string]FolderRule{
 			"Images": {
-				TargetPath: "path/to/Images",
+				TargetDir:  "path/to/Images",
 				Extensions: []string{".jpg"},
 			},
 			"Duplicates": {
-				TargetPath: "path/to/Dup",
+				TargetDir:  "path/to/Dup",
 				Extensions: []string{".jpg"},
 			},
 		},
@@ -76,7 +76,7 @@ func TestInvertConfig(t *testing.T) {
 	cfg := &Config{
 		Rules: map[string]FolderRule{
 			"Images": {
-				TargetPath: "$HOME/Pictures",
+				TargetDir:  "$HOME/Pictures",
 				Extensions: []string{".jpg", ".png"},
 			},
 		},

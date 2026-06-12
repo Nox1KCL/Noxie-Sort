@@ -23,10 +23,10 @@ func main() {
 		configPath string
 		isDaemon   bool
 	)
-    const (
-        pollingTime = 5 * time.Second
-        maxTries = 10
-    )
+	const (
+		pollingTime = 5 * time.Second
+		maxTries    = 10
+	)
 
 	flag.StringVar(&configPath, "config", "", "path to config file (uses embedded default if empty)")
 	flag.BoolVar(&isDaemon, "daemon", false, "run as daemon")
@@ -60,7 +60,7 @@ func main() {
 	}
 
 	mlog.Info("configuration initialized",
-		"config_path", configPath,
+		"config_path", foundPath,
 		"rules_count", len(cfg.Rules),
 	)
 
@@ -73,16 +73,15 @@ func main() {
 	wg := sync.WaitGroup{}
 	jobs := make(chan string, 100)
 
-	for range (1 * len(cfg.ScanDirs)) {
+	for range 1 * len(cfg.ScanDirs) {
 		wg.Add(1)
 		go watcher.Worker(jobs, &wg, cfg, pollingTime, maxTries)
 	}
 
 	var scannerWg syncutils.MyWaitGroup
-	scannerWg.Go(func(){
-	    watcher.Scanner(ctx, cfg, jobs)
+	scannerWg.Go(func() {
+		watcher.Scanner(ctx, cfg, jobs)
 	})
-
 
 	sig := <-sigChan
 	mlog.Warn("received stop signal, shutting down gracefully",

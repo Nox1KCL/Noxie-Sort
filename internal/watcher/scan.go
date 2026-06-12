@@ -16,7 +16,7 @@ import (
 var snlog = slog.With("module", "scanner")
 
 func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
-    watcher, err := fsnotify.NewWatcher()
+	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		snlog.Error("failed to initialize watcher",
 			"error", err)
@@ -28,10 +28,10 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 	for _, dir := range cfg.ScanDirs {
 		err = watcher.Add(dir)
 		if err != nil {
-		snlog.Error("failed to add watch directory",
-			"error", err,
-			"dir", dir)
-		return
+			snlog.Error("failed to add watch directory",
+				"error", err,
+				"dir", dir)
+			return
 		}
 	}
 
@@ -49,11 +49,11 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 				snlog.Debug("event", "event", event)
 				fileName := filepath.Base(event.Name)
 				if isValid := files.FileExtValidate(fileName); isValid {
-    				select {
-    				case jobs <- event.Name:
-    				case <-ctx.Done():
-    					return
-    				}
+					select {
+					case jobs <- event.Name:
+					case <-ctx.Done():
+						return
+					}
 				}
 			}
 
@@ -67,17 +67,16 @@ func Scanner(ctx context.Context, cfg *config.Config, jobs chan<- string) {
 	}
 }
 
-
 func Worker(jobs <-chan string, wg *sync.WaitGroup, cfg *config.Config, waitInterval time.Duration, maxRetries int) {
 	defer wg.Done()
 
 	for j := range jobs {
-	    err := files.FileSizePolling(j, waitInterval, maxRetries)
+		err := files.FileSizePolling(j, waitInterval, maxRetries)
 		if err != nil {
-		    snlog.Debug("file size polling failed",
+			snlog.Debug("file size polling failed",
 				"error", err,
 				"file", j)
-		    continue
+			continue
 		}
 		if files.IsFileLocked(j) {
 			snlog.Debug("file is locked, skipping", "file", j)
