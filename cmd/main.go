@@ -24,6 +24,7 @@ type Flags struct {
 	IsDaemon   bool
 	Background bool
 	IsChild    bool
+	Stop       bool
 }
 
 func (f *Flags) flagProcessing() {
@@ -31,6 +32,7 @@ func (f *Flags) flagProcessing() {
 	flag.BoolVar(&f.IsDaemon, "daemon", false, "run as daemon")
 	flag.BoolVar(&f.Background, "background", false, "run for create a child process")
 	flag.BoolVar(&f.IsChild, "child", false, "run as child process")
+	flag.BoolVar(&f.Stop, "stop", false, "stop processing")
 	flag.Parse()
 }
 
@@ -41,6 +43,11 @@ func main() {
 	)
 	var f Flags
 	f.flagProcessing()
+
+	if f.Stop {
+		_, _ = fmt.Fprintf(os.Stderr, "stop processing\n")
+		os.Exit(0)
+	}
 
 	foundPath := config.FindConfig(f.ConfigPath)
 	cfg, cfgErr := config.GetConfig(foundPath)
