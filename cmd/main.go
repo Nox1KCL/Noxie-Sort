@@ -29,8 +29,8 @@ type Flags struct {
 func (f *Flags) flagProcessing() {
 	flag.StringVar(&f.ConfigPath, "config", "", "path to config file (uses embedded default if empty)")
 	flag.BoolVar(&f.IsDaemon, "daemon", false, "run as daemon")
-	flag.BoolVar(&f.Background, "background", false, "run as background")
-	flag.BoolVar(&f.IsChild, "child", false, "run as child")
+	flag.BoolVar(&f.Background, "background", false, "run for create a child process")
+	flag.BoolVar(&f.IsChild, "child", false, "run as child process")
 	flag.Parse()
 }
 
@@ -75,14 +75,32 @@ func main() {
 	)
 
 	if f.Background {
+		fileLock, err := background.IsChildRunning()
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "background process is running: %v\n", err)
+			os.Exit(1)
+		}
+		fileLock.Close()
+
 		childArgs := []string{"--child", "--config", f.ConfigPath}
-		err := background.RunInBackground(childArgs)
+		err = background.RunInBackground(childArgs)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "background run failed: %v\n", err)
 			os.Exit(1)
 		}
-		mlog.Info("background run", "args", childArgs)
+		mlog.Info("background run",
+			"args", childArgs)
 		return
+	}
+
+	if f.IsChild {
+		fileLock, err := background.IsChildRunning()
+		if err != nil {
+			mlog.Error("failed to acquire lock",
+				"error", err)
+			os.Exit(1)
+		}
+		defer fileLock.Close()
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
