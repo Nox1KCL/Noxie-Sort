@@ -11,27 +11,6 @@ import (
 	"github.com/Nox1KCL/InFolderSort/internal/files"
 )
 
-//func Core(cfg *config.Config, sorter *files.Sorter) error {
-//	userChoice := askChoice("basic sort or manual?(b/m): ", "b", "m")
-//	var targetPath string
-//	var err error
-//
-//	switch userChoice {
-//	case "b":
-//		targetPath = cfg.ScanDir
-//	case "m":
-//		targetPath, err = getManualPath()
-//	default:
-//		return fmt.Errorf("unexpected user choice: %q", userChoice)
-//	}
-//
-//	if err != nil {
-//		return fmt.Errorf("failed to get target path: %w", err)
-//	}
-//
-//	return performSort(sorter)
-//}
-
 func performSort(sorter *files.Sorter) error {
 	fileInfo, err := os.Stat(sorter.ScanDir)
 	if err != nil {

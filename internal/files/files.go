@@ -97,25 +97,38 @@ func (s *Sorter) Plan() error {
 			s.Errors = append(s.Errors, err)
 			continue
 		}
+		var (
+			futurePath    string // Для перевірки чи файл існує там де ми хочемо його перемістити
+			savePath      string // Для переносу
+			finalFileName string
+		)
 
-		futurePath := filepath.Join(s.ScanDir, targetDir, fileName)
+		// Ця перевірка для гнучкості збереження файлу (або просто папка, або Abs шлях)
+		if filepath.IsAbs(targetDir) {
+			savePath = targetDir
+			futurePath = filepath.Join(targetDir, fileName)
+		} else {
+			savePath = filepath.Join(s.ScanDir, targetDir)
+			futurePath = filepath.Join(s.ScanDir, targetDir, fileName)
+		}
+
 		exist, err := IsFileExist(futurePath)
 		if err != nil {
 			flog.Error("checking file existence",
 				"file", fileName,
-				"path", targetDir,
+				"path", futurePath,
 				"error", err)
 			s.Errors = append(s.Errors, err)
 			continue
 		}
 
-		finalFileName := fileName
+		finalFileName = fileName
 		if exist {
 			finalFileName = RenameFile(fileName)
 		}
 
 		sourcePath := filepath.Join(s.ScanDir, fileName)
-		destPath := filepath.Join(s.ScanDir, targetDir, finalFileName)
+		destPath := filepath.Join(savePath, finalFileName)
 		s.Tasks = append(s.Tasks, MoveTask{fileName, sourcePath, destPath})
 	}
 	return nil
@@ -198,11 +211,11 @@ func (s *Sorter) SelectiveSorting(filePath string) (SortResult, error) {
 func FileSizePolling(filePath string, waitInterval time.Duration, maxRetries int) error {
 	var lastSize int64 = -1
 	retries := 0
-	err := MicroPolling(filePath, waitInterval/5)
+	err := microPolling(filePath, waitInterval/5)
 	if err == nil {
 		return nil
 	}
-	 
+
 	for {
 		info, err := os.Stat(filePath)
 		if err != nil {
@@ -234,7 +247,7 @@ func FileSizePolling(filePath string, waitInterval time.Duration, maxRetries int
 	}
 }
 
-func MicroPolling(filePath string, waitInterval time.Duration) error {
+func microPolling(filePath string, waitInterval time.Duration) error {
 	info1, err := os.Stat(filePath)
 	if err != nil {
 		flog.Warn("failed to stat file",
@@ -257,24 +270,6 @@ func MicroPolling(filePath string, waitInterval time.Duration) error {
 	}
 
 	return fmt.Errorf("file size micro-polling failed %q", filePath)
-}
-
-func GetDownloadsPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to find home directory: %w", err)
-	}
-
-	potentialDirs := []string{"Downloads", "downloads"}
-
-	for _, dirName := range potentialDirs {
-		downloadPath := filepath.Join(homeDir, dirName)
-		if info, err := os.Stat(downloadPath); err == nil && info.IsDir() {
-			return downloadPath, nil
-		}
-	}
-
-	return "", fmt.Errorf("downloads directory not found")
 }
 
 func IsFileExist(path string) (bool, error) {
@@ -344,12 +339,4 @@ func RenameFile(file string) string {
 	timestamp := time.Now().Format("20060102_150405")
 	newName := fmt.Sprintf("%s_%s%s", name, timestamp, ext)
 	return newName
-}
-
-func ExecutableDir() string {
-	exe, err := os.Executable()
-	if err != nil {
-		return "."
-	}
-	return filepath.Dir(exe)
 }

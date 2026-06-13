@@ -94,16 +94,4 @@ func main() {
 	wg.Wait()
 
 	mlog.Info("graceful shutdown complete")
-
-	//sorter := files.NewSorter(cfg)
-	// Start tui
-	//err := tui.Core(cfg, sorter)
-	//if err != nil {
-	//	mlog.Error("starting tui",
-	//		"error", err,
-	//		"config_rules", len(cfg.Rules),
-	//	)
-	//	_, _ = fmt.Fprintf(os.Stderr, "running application: %v\n", err)
-	//	os.Exit(1)
-	//}
 }
