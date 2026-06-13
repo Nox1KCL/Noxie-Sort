@@ -12,27 +12,37 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Nox1KCL/InFolderSort/internal/background"
 	"github.com/Nox1KCL/InFolderSort/internal/config"
 	"github.com/Nox1KCL/InFolderSort/internal/logger"
 	"github.com/Nox1KCL/InFolderSort/internal/syncutils"
 	"github.com/Nox1KCL/InFolderSort/internal/watcher"
 )
 
+type Flags struct {
+	ConfigPath string
+	IsDaemon   bool
+	Background bool
+	IsChild    bool
+}
+
+func (f *Flags) flagProcessing() {
+	flag.StringVar(&f.ConfigPath, "config", "", "path to config file (uses embedded default if empty)")
+	flag.BoolVar(&f.IsDaemon, "daemon", false, "run as daemon")
+	flag.BoolVar(&f.Background, "background", false, "run as background")
+	flag.BoolVar(&f.IsChild, "child", false, "run as child")
+	flag.Parse()
+}
+
 func main() {
-	var (
-		configPath string
-		isDaemon   bool
-	)
 	const (
 		pollingTime = 2 * time.Second
 		maxTries    = 5
 	)
+	var f Flags
+	f.flagProcessing()
 
-	flag.StringVar(&configPath, "config", "", "path to config file (uses embedded default if empty)")
-	flag.BoolVar(&isDaemon, "daemon", false, "run as daemon")
-	flag.Parse()
-
-	foundPath := config.FindConfig(configPath)
+	foundPath := config.FindConfig(f.ConfigPath)
 	cfg, cfgErr := config.GetConfig(foundPath)
 	if cfgErr != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "get configuration file: %v\n", cfgErr)
