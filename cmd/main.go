@@ -74,6 +74,17 @@ func main() {
 		"rules_count", len(cfg.Rules),
 	)
 
+	if f.Background {
+		childArgs := []string{"--child", "--config", f.ConfigPath}
+		err := background.RunInBackground(childArgs)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "background run failed: %v\n", err)
+			os.Exit(1)
+		}
+		mlog.Info("background run", "args", childArgs)
+		return
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
