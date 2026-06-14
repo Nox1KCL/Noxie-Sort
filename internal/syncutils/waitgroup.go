@@ -4,13 +4,13 @@ package syncutils
 import "sync"
 
 type MyWaitGroup struct {
-    sync.WaitGroup
+	sync.WaitGroup
 }
 
 func (wg *MyWaitGroup) Go(fn func()) {
-    wg.Add(1)
-    go func() {
-        defer wg.Done()
-        fn()
-    }()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		fn()
+	}()
 }

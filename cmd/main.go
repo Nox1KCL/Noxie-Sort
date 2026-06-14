@@ -14,6 +14,7 @@ import (
 
 	"github.com/Nox1KCL/InFolderSort/internal/background"
 	"github.com/Nox1KCL/InFolderSort/internal/config"
+	"github.com/Nox1KCL/InFolderSort/internal/daemon"
 	"github.com/Nox1KCL/InFolderSort/internal/logger"
 	"github.com/Nox1KCL/InFolderSort/internal/syncutils"
 	"github.com/Nox1KCL/InFolderSort/internal/watcher"
@@ -21,7 +22,7 @@ import (
 
 type Flags struct {
 	ConfigPath string
-	IsDaemon   bool
+	Daemon     string
 	Background bool
 	IsChild    bool
 	Stop       bool
@@ -29,7 +30,7 @@ type Flags struct {
 
 func (f *Flags) flagProcessing() {
 	flag.StringVar(&f.ConfigPath, "config", "", "path to config file (uses embedded default if empty)")
-	flag.BoolVar(&f.IsDaemon, "daemon", false, "run as daemon")
+	flag.StringVar(&f.Daemon, "daemon", "", "run as daemon")
 	flag.BoolVar(&f.Background, "background", false, "run for create a child process")
 	flag.BoolVar(&f.IsChild, "child", false, "run as child process")
 	flag.BoolVar(&f.Stop, "stop", false, "stop processing")
@@ -80,6 +81,24 @@ func main() {
 		"config_path", foundPath,
 		"rules_count", len(cfg.Rules),
 	)
+	switch f.Daemon {
+	case "install":
+		err := daemon.LaunchingDaemon()
+		if err != nil {
+			mlog.Error("failed to install daemon", "error", err)
+			os.Exit(1)
+		}
+		mlog.Info("daemon installed successfully")
+		os.Exit(0)
+	case "uninstall":
+		err := daemon.ClosingDaemon()
+		if err != nil {
+			mlog.Error("failed to uninstall daemon", "error", err)
+			os.Exit(1)
+		}
+		mlog.Info("daemon uninstalled successfully")
+		os.Exit(0)
+	}
 
 	if f.Background {
 		fileLock, err := background.IsChildRunning()

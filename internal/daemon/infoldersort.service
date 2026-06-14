@@ -1,0 +1,12 @@
+[Unit]
+Description=InFolderSort Background Service
+After=default.target
+
+[Service]
+Type=simple
+ExecStart={{EXEC_PATH}} --child
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=default.target
