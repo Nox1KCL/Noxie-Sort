@@ -108,6 +108,10 @@ func main() {
 		}
 		fileLock.Close()
 
+		if err := daemon.IsWorking(); err != nil {
+			mlog.Warn("daemon is not properly configured (background process will still start)", "error", err)
+		}
+
 		childArgs := []string{"--child", "--config", f.ConfigPath}
 		err = background.RunInBackground(childArgs)
 		if err != nil {

@@ -66,9 +66,12 @@ func ClosingDaemon() error {
 	return nil
 }
 
-func isWorking() error {
+func IsWorking() error {
 	err := exec.Command("systemctl", "--user", "is-active", "--quiet", "infoldersort.service").Run()
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *ServiceInfo) initService() error {
