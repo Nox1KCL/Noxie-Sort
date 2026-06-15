@@ -12,13 +12,14 @@ var Service []byte
 var dlog = slog.With("module", "daemon")
 
 type ServiceInfo struct {
+	Name    string
 	Path    string
 	Content string
 }
 
 func LaunchingDaemon() error {
 	dlog.Info("starting daemon installation")
-	err := isWorking()
+	err := IsWorking()
 	if err == nil {
 		return errors.New("daemon is already running")
 	}
@@ -39,6 +40,7 @@ func LaunchingDaemon() error {
 
 func NewService() *ServiceInfo {
 	return &ServiceInfo{
+		Name:    "",
 		Path:    "",
 		Content: "",
 	}
