@@ -4,9 +4,6 @@ import (
 	_ "embed"
 	"errors"
 	"log/slog"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 //go:embed infoldersort.service
@@ -45,19 +42,4 @@ func NewService() *ServiceInfo {
 		Path:    "",
 		Content: "",
 	}
-}
-
-func (s *ServiceInfo) initService() error {
-	cfgPath, err := os.UserConfigDir()
-	if err != nil {
-		return err
-	}
-	serviceName := "infoldersort.service"
-	servicePath := filepath.Clean(filepath.Join(cfgPath, "systemd", "user", serviceName))
-
-	s.Path = servicePath
-	exePath, _ := os.Executable()
-	s.Content = strings.ReplaceAll(string(Service), "{{EXEC_PATH}}", exePath)
-
-	return nil
 }

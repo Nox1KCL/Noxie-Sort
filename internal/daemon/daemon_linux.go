@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 func (s *ServiceInfo) initDaemon() error {
@@ -68,4 +69,19 @@ func ClosingDaemon() error {
 func isWorking() error {
 	err := exec.Command("systemctl", "--user", "is-active", "--quiet", "infoldersort.service").Run()
 	return err
+}
+
+func (s *ServiceInfo) initService() error {
+	cfgPath, err := os.UserConfigDir()
+	if err != nil {
+		return err
+	}
+	serviceName := "infoldersort.service"
+	servicePath := filepath.Clean(filepath.Join(cfgPath, "systemd", "user", serviceName))
+
+	s.Path = servicePath
+	exePath, _ := os.Executable()
+	s.Content = strings.ReplaceAll(string(Service), "{{EXEC_PATH}}", exePath)
+
+	return nil
 }
