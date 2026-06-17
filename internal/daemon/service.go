@@ -6,7 +6,7 @@ import (
 	"log/slog"
 )
 
-//go:embed infoldersort.service
+//go:embed noxie-sort.service
 var Service []byte
 
 var dlog = slog.With("module", "daemon")

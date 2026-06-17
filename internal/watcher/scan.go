@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Nox1KCL/InFolderSort/internal/config"
-	"github.com/Nox1KCL/InFolderSort/internal/files"
+	"github.com/Nox1KCL/Noxie-Sort/internal/config"
+	"github.com/Nox1KCL/Noxie-Sort/internal/files"
 	"github.com/fsnotify/fsnotify"
 )
 

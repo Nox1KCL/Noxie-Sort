@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Nox1KCL/InFolderSort/internal/logger"
+	"github.com/Nox1KCL/Noxie-Sort/internal/logger"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -149,23 +149,23 @@ func FindConfig(flagPath string) string {
 	if flagPath != "" {
 		return flagPath
 	}
-	//IFS_CONFIG_PATH=/home/user/my.toml ./inFolderSort
+	//IFS_CONFIG_PATH=/home/user/my.toml ./Noxie-Sort
 	//
 	//# Або експортувати в сесію:
-	//export IFS_CONFIG_PATH=/home/user/my.toml ./inFolderSort
+	//export IFS_CONFIG_PATH=/home/user/my.toml ./Noxie-Sort
 	if envPath := os.Getenv("IFS_CONFIG_PATH"); envPath != "" {
 		return envPath
 	}
 
 	defaultPaths := []string{
 		"config.toml",
-		os.ExpandEnv("$HOME/InFolderSort/config.toml"),
-		"/etc/InFolderSort/config.toml",
+		os.ExpandEnv("$HOME/Noxie-Sort/config.toml"),
+		"/etc/Noxie-Sort/config.toml",
 	}
 
 	configDir, err := os.UserConfigDir()
 	if err == nil {
-		defaultPaths = append(defaultPaths, filepath.Join(configDir, "InFolderSort", "config.toml"))
+		defaultPaths = append(defaultPaths, filepath.Join(configDir, "Noxie-Sort", "config.toml"))
 	}
 
 	for _, p := range defaultPaths {

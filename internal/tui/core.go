@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Nox1KCL/InFolderSort/internal/files"
+	"github.com/Nox1KCL/Noxie-Sort/internal/files"
 )
 
 func performSort(sorter *files.Sorter) error {

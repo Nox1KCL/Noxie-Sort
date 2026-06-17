@@ -35,8 +35,8 @@ func ClosingDaemon() error {
 	}
 	defer k.Close()
 
-	dlog.Debug("deleting registry value", "name", "InFolderSort")
-	err = k.DeleteValue("InFolderSort")
+	dlog.Debug("deleting registry value", "name", "Noxie-Sort")
+	err = k.DeleteValue("Noxie-Sort")
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func IsWorking() error {
 	// Захардкодив бо для отримання з Service треба або його передавати або робити функцію методом
 	// але тоді у service.go вилазить що не можна швидко перевірити чи прога працює через так би мовити
 	// зворотну залежність
-	path, _, err := k.GetStringValue("InFolderSort")
+	path, _, err := k.GetStringValue("Noxie-Sort")
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (s *ServiceInfo) initService() error {
 	if err != nil {
 		return err
 	}
-	serviceName := "InFolderSort"
+	serviceName := "Noxie-Sort"
 
 	s.Name = serviceName
 	s.Path = execPath

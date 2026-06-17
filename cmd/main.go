@@ -12,12 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Nox1KCL/InFolderSort/internal/background"
-	"github.com/Nox1KCL/InFolderSort/internal/config"
-	"github.com/Nox1KCL/InFolderSort/internal/daemon"
-	"github.com/Nox1KCL/InFolderSort/internal/logger"
-	"github.com/Nox1KCL/InFolderSort/internal/syncutils"
-	"github.com/Nox1KCL/InFolderSort/internal/watcher"
+	"github.com/Nox1KCL/Noxie-Sort/internal/background"
+	"github.com/Nox1KCL/Noxie-Sort/internal/config"
+	"github.com/Nox1KCL/Noxie-Sort/internal/daemon"
+	"github.com/Nox1KCL/Noxie-Sort/internal/logger"
+	"github.com/Nox1KCL/Noxie-Sort/internal/syncutils"
+	"github.com/Nox1KCL/Noxie-Sort/internal/watcher"
 )
 
 type Flags struct {

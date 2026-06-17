@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Nox1KCL/InFolderSort/internal/config"
+	"github.com/Nox1KCL/Noxie-Sort/internal/config"
 )
 
 var flog = slog.With("module", "files")

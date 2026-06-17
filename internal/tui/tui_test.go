@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Nox1KCL/InFolderSort/internal/files"
+	"github.com/Nox1KCL/Noxie-Sort/internal/files"
 )
 
 func TestGenerateReport(t *testing.T) {

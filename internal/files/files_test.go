@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Nox1KCL/InFolderSort/internal/config"
-	"github.com/Nox1KCL/InFolderSort/internal/syncutils"
+	"github.com/Nox1KCL/Noxie-Sort/internal/config"
+	"github.com/Nox1KCL/Noxie-Sort/internal/syncutils"
 )
 
 func TestInDirSorting_Basic(t *testing.T) {

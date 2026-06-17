@@ -20,7 +20,7 @@ func detach(childArgs []string) error {
 	if err != nil {
 		return fmt.Errorf("getting user cache dir: %w", err)
 	}
-	logDir := filepath.Join(cacheDir, "InFolderSort")
+	logDir := filepath.Join(cacheDir, "Noxie-Sort")
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return fmt.Errorf("creating log dir: %w", err)
 	}

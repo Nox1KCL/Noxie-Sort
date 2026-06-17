@@ -29,7 +29,7 @@ func (s *ServiceInfo) initDaemon() error {
 	}
 
 	dlog.Debug("enabling and starting service")
-	err = exec.Command("systemctl", "--user", "enable", "--now", "infoldersort.service").Run()
+	err = exec.Command("systemctl", "--user", "enable", "--now", "noxie-sort.service").Run()
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func ClosingDaemon() error {
 	}
 
 	dlog.Debug("disabling and stopping service")
-	err = exec.Command("systemctl", "--user", "disable", "--now", "infoldersort.service").Run()
+	err = exec.Command("systemctl", "--user", "disable", "--now", "noxie-sort.service").Run()
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func ClosingDaemon() error {
 }
 
 func IsWorking() error {
-	err := exec.Command("systemctl", "--user", "is-active", "--quiet", "infoldersort.service").Run()
+	err := exec.Command("systemctl", "--user", "is-active", "--quiet", "noxie-sort.service").Run()
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (s *ServiceInfo) initService() error {
 	if err != nil {
 		return err
 	}
-	serviceName := "infoldersort.service"
+	serviceName := "noxie-sort.service"
 	servicePath := filepath.Clean(filepath.Join(cfgPath, "systemd", "user", serviceName))
 
 	s.Path = servicePath
