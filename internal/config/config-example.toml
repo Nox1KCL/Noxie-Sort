@@ -1,13 +1,13 @@
-scan_dir = "path/to/scanDir"
-logs_dir = "path/to/logs"
-workers = 3
+scan_dir = "$HOME/Downloads/"
+scan_dirs = ["$HOME/Downloads/", "$HOME/Documents"]
+logs_dir = "./logs"
 
-[rules.Name1]
-target_path = "path/to/Name1"
+[rules.Images]
+target_dir = "Images"
 extensions = [".jpg", ".png", ".gif"]
 
-[rules.Name2]
-target_path = "path/to/Name2"
+[rules.Documents]
+target_dir = "Documents"
 extensions = [".pdf", ".docx", ".txt"]
 
 [logger]
@@ -15,3 +15,4 @@ max_size = 10
 max_age = 28
 max_backups = 4
 compress = true
+

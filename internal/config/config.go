@@ -14,7 +14,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
-//go:embed config.toml
+//go:embed config-example.toml
 var defaultConfig []byte
 
 var clog = slog.With("module", "config")
@@ -149,6 +149,7 @@ func FindConfig(flagPath string) string {
 	if flagPath != "" {
 		return flagPath
 	}
+
 	//IFS_CONFIG_PATH=/home/user/my.toml ./Noxie-Sort
 	//
 	//# Або експортувати в сесію:
