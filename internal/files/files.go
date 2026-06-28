@@ -16,6 +16,8 @@ import (
 
 	"github.com/Nox1KCL/Noxie-Sort/internal/config"
 	"github.com/Nox1KCL/Noxie-Sort/internal/telemetry"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 var flog = slog.With("module", "files")
@@ -93,6 +95,9 @@ func (s *Sorter) Plan(ctx context.Context, obs *telemetry.Observe) error {
 	for _, file := range s.Files {
 		fileName := file.Name
 		fileExt := filepath.Ext(fileName)
+		obs.FextCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("file.extension", fileExt),
+		))
 		targetDir, err := s.Config.GetTargetPath(fileExt)
 		if err != nil {
 			flog.Warn("file extension not found in config",
@@ -169,9 +174,12 @@ func (s *Sorter) Execute(ctx context.Context, obs *telemetry.Observe) (SortResul
 			report.Skipped = append(report.Skipped, task.FileName)
 			continue
 		}
-		info, _ := os.Stat(task.DestPath)
-		obs.BytesMoved.Add(ctx, info.Size())
-		report.Moved = append(report.Moved, task.FileName)
+		if info, err := os.Stat(task.DestPath); err == nil {
+			obs.BytesMoved.Add(ctx, info.Size())
+		} else {
+			span.RecordError(err)
+			flog.DebugContext(ctx, "failed to stat moved file for metrics", "error", err)
+		}
 	}
 	flog.Info("sorting completed",
 		"total", len(s.Tasks),
