@@ -8,7 +8,7 @@ ADD . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-w -s" \
-    -o /app/nxe-sort .
+    -o /app/nxe-sort ./cmd/
 
 FROM alpine:3.19
 WORKDIR /app
