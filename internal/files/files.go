@@ -2,6 +2,7 @@
 package files
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/Nox1KCL/Noxie-Sort/internal/config"
+	"github.com/Nox1KCL/Noxie-Sort/internal/telemetry"
 )
 
 var flog = slog.With("module", "files")
@@ -75,7 +77,7 @@ func (s *Sorter) Scan() error {
 	return nil
 }
 
-func (s *Sorter) Plan() error {
+func (s *Sorter) Plan(ctx context.Context, obs *telemetry.Observe) error {
 	if len(s.Files) == 0 {
 		flog.Error("no files found",
 			"dir", s.ScanDir)
@@ -84,6 +86,9 @@ func (s *Sorter) Plan() error {
 	if s.Config == nil {
 		return fmt.Errorf("config is empty")
 	}
+
+	_, span := obs.Tracer.Start(ctx, "Sorter.Plan")
+	defer span.End()
 
 	for _, file := range s.Files {
 		fileName := file.Name
@@ -134,8 +139,10 @@ func (s *Sorter) Plan() error {
 	return nil
 }
 
-func (s *Sorter) Execute() (SortResult, error) {
+func (s *Sorter) Execute(ctx context.Context, obs *telemetry.Observe) (SortResult, error) {
 	var report SortResult
+	_, span := obs.Tracer.Start(ctx, "Sorter.Execute")
+	defer span.End()
 
 	for _, task := range s.Tasks {
 		destDir := filepath.Dir(task.DestPath)
@@ -162,7 +169,8 @@ func (s *Sorter) Execute() (SortResult, error) {
 			report.Skipped = append(report.Skipped, task.FileName)
 			continue
 		}
-
+		info, _ := os.Stat(task.DestPath)
+		obs.BytesMoved.Add(ctx, info.Size())
 		report.Moved = append(report.Moved, task.FileName)
 	}
 	flog.Info("sorting completed",
@@ -174,16 +182,21 @@ func (s *Sorter) Execute() (SortResult, error) {
 	return report, nil
 }
 
-func (s *Sorter) OneTimeSorting() (SortResult, error) {
+func (s *Sorter) OneTimeSorting(ctx context.Context, obs *telemetry.Observe) (SortResult, error) {
+	spanCtx, span := obs.Tracer.Start(ctx, "Sorter.OneTimeSorting")
+	defer span.End()
 
 	if err := s.Scan(); err != nil {
+		span.RecordError(err)
 		return SortResult{}, fmt.Errorf("scanning directory %q: %w", s.ScanDir, err)
 	}
-	if err := s.Plan(); err != nil {
+	if err := s.Plan(spanCtx, obs); err != nil {
+		span.RecordError(err)
 		return SortResult{}, fmt.Errorf("planning sorting: %w", err)
 	}
 
-	if report, err := s.Execute(); err != nil {
+	if report, err := s.Execute(spanCtx, obs); err != nil {
+		span.RecordError(err)
 		report.Errors = append(report.Errors, s.Errors...)
 		return report, fmt.Errorf("executing sorting: %w", err)
 	} else {
@@ -191,16 +204,19 @@ func (s *Sorter) OneTimeSorting() (SortResult, error) {
 	}
 }
 
-func (s *Sorter) SelectiveSorting(filePath string) (SortResult, error) {
+func (s *Sorter) SelectiveSorting(ctx context.Context, obs *telemetry.Observe, filePath string) (SortResult, error) {
 	scanDir, fileName := filepath.Split(filePath)
 	s.ScanDir = filepath.Clean(scanDir)
-
 	s.Files = append(s.Files, FileInfo{s.ScanDir, fileName})
 
-	if err := s.Plan(); err != nil {
+	spanCtx, span := obs.Tracer.Start(ctx, "Sorter.SelectiveSorting")
+	defer span.End()
+
+	if err := s.Plan(spanCtx, obs); err != nil {
 		return SortResult{}, fmt.Errorf("planning sorting: %w", err)
 	}
-	if report, err := s.Execute(); err != nil {
+	if report, err := s.Execute(spanCtx, obs); err != nil {
+		span.RecordError(err)
 		report.Errors = append(report.Errors, s.Errors...)
 		return report, fmt.Errorf("executing sorting: %w", err)
 	} else {

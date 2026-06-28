@@ -23,12 +23,15 @@ import (
 )
 
 type Observe struct {
-	Tracer     trace.Tracer
-	Meter      metric.Meter
-	Logger     *slog.Logger
-	OpCounter  metric.Int64Counter
-	OpDuration metric.Float64Histogram
-	ErrCounter metric.Int64Counter
+	Tracer       trace.Tracer
+	Meter        metric.Meter
+	Logger       *slog.Logger
+	SCounter     metric.Int64Counter
+	SDuration    metric.Float64Histogram
+	ErrCounter   metric.Int64Counter
+	EventCounter metric.Int64Counter
+	BytesMoved   metric.Int64Counter
+	FextCounter  metric.Int64Counter
 }
 
 func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
@@ -42,7 +45,7 @@ func newResource() (*resource.Resource, error) {
 		resource.Default(),
 		resource.NewWithAttributes(
 			"",
-			semconv.ServiceName("Noxie-Calc"),
+			semconv.ServiceName("Noxie-Sort"),
 			semconv.ServiceVersion("1.0.0"),
 		),
 	)
@@ -138,34 +141,49 @@ func newLoggerProvider(res *resource.Resource) (*log.LoggerProvider, error) {
 
 func getObserver() *Observe {
 	observer := &Observe{
-		Meter:  otel.Meter("Noxie-Calc-Meter"),
-		Tracer: otel.Tracer("Noxie-Calc-Tracer"),
-		Logger: otelslog.NewLogger("Noxie-Calc-Logger"),
+		Meter:  otel.Meter("Noxie-Sort-Meter"),
+		Tracer: otel.Tracer("Noxie-Sort-Tracer"),
+		Logger: otelslog.NewLogger("Noxie-Sort-Logger"),
 	}
 
-	opCounter, _ := observer.Meter.Int64Counter(
-		"api.counter",
-		metric.WithDescription("Number of API calls."),
+	sCounter, _ := observer.Meter.Int64Counter(
+		"sort.operations",
+		metric.WithDescription("Number of sort operations"),
 		metric.WithUnit("{call}"),
 	)
-	opDuration, _ := observer.Meter.Float64Histogram(
-		"calc.operation.duration",
-		metric.WithDescription("Duration of calc operations"),
+	eventCounter, _ := observer.Meter.Int64Counter(
+		"events.count",
+		metric.WithDescription("Number of events"))
+	sDuration, _ := observer.Meter.Float64Histogram(
+		"sort.operation.duration",
+		metric.WithDescription("Duration of sort operations"),
 		metric.WithUnit("ms"),
 	)
 	errCounter, _ := observer.Meter.Int64Counter(
-		"calc.errors",
-		metric.WithDescription("Number of calculation errors"),
+		"sort.errors",
+		metric.WithDescription("Number of sorting errors"),
 		metric.WithUnit("{error}"),
 	)
+	bytesMoved, _ := observer.Meter.Int64Counter(
+		"bytes.moved",
+		metric.WithDescription("Number of bytes moved"),
+		metric.WithUnit("bytes"),
+	)
+	fextCounter, _ := observer.Meter.Int64Counter(
+		"files.extension",
+		metric.WithDescription("Number of files extensions"),
+		metric.WithUnit("{operation}"))
 
-	observer.OpCounter = opCounter
-	observer.OpDuration = opDuration
+	observer.SCounter = sCounter
+	observer.SDuration = sDuration
 	observer.ErrCounter = errCounter
+	observer.EventCounter = eventCounter
+	observer.BytesMoved = bytesMoved
+	observer.FextCounter = fextCounter
 
 	_, _ = observer.Meter.Float64ObservableGauge(
 		"process.memory.alloc",
-		metric.WithDescription("Поточне споживання кучі (Heap Alloc) в мегабайтах"),
+		metric.WithDescription("Currently heap usage (Heap Alloc) in Mb"),
 		metric.WithUnit("MiB"),
 		metric.WithFloat64Callback(func(_ context.Context, obs metric.Float64Observer) error {
 			var m runtime.MemStats

@@ -17,6 +17,7 @@ import (
 	"github.com/Nox1KCL/Noxie-Sort/internal/daemon"
 	"github.com/Nox1KCL/Noxie-Sort/internal/logger"
 	"github.com/Nox1KCL/Noxie-Sort/internal/syncutils"
+	"github.com/Nox1KCL/Noxie-Sort/internal/telemetry"
 	"github.com/Nox1KCL/Noxie-Sort/internal/watcher"
 )
 
@@ -132,9 +133,15 @@ func main() {
 		}
 		defer fileLock.Close()
 	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	shutdown, observer, err := telemetry.NewTelemetry()
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "telemetry initialization failed: %v\n", err)
+		os.Exit(1)
+	}
+	defer shutdown(ctx)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -144,12 +151,12 @@ func main() {
 
 	for range 3 * len(cfg.ScanDirs) {
 		wg.Add(1)
-		go watcher.Worker(jobs, &wg, cfg, pollingTime, maxTries)
+		go watcher.Worker(ctx, observer, jobs, &wg, cfg, pollingTime, maxTries)
 	}
 
 	var scannerWg syncutils.MyWaitGroup
 	scannerWg.Go(func() {
-		watcher.Scanner(ctx, cfg, jobs)
+		watcher.Scanner(ctx, observer, cfg, jobs)
 	})
 
 	sig := <-sigChan
