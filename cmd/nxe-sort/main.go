@@ -82,9 +82,15 @@ func main() {
 		"config_path", foundPath,
 		"rules_count", len(cfg.Rules),
 	)
+	service, err := daemon.NewService()
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "create service: %v\n", err)
+		os.Exit(1)
+	}
+
 	switch f.Daemon {
 	case "install":
-		err := daemon.LaunchingDaemon()
+		err := service.LaunchingDaemon()
 		if err != nil {
 			mlog.Error("failed to install daemon", "error", err)
 			os.Exit(1)
@@ -92,7 +98,7 @@ func main() {
 		mlog.Info("daemon installed successfully")
 		os.Exit(0)
 	case "uninstall":
-		err := daemon.ClosingDaemon()
+		err := service.ClosingDaemon()
 		if err != nil {
 			mlog.Error("failed to uninstall daemon", "error", err)
 			os.Exit(1)
@@ -135,6 +141,8 @@ func main() {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	service.OpenServer(ctx)
 
 	shutdown, observer, err := telemetry.NewTelemetry()
 	if err != nil {

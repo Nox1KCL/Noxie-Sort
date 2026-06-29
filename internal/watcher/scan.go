@@ -37,10 +37,10 @@ func Scanner(ctx context.Context, obs *telemetry.Observe, cfg *config.Config, jo
 			span.SetStatus(codes.Error, "adding directory "+dir)
 			obs.ErrCounter.Add(processCtx, 1)
 
-			snlog.ErrorContext(processCtx, "failed to add watch directory",
+			snlog.WarnContext(processCtx, "failed to add watch directory",
 				"error", err,
 				"dir", dir)
-			return
+			continue
 		}
 	}
 

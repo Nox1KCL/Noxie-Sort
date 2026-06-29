@@ -18,6 +18,7 @@ import (
 	"github.com/Nox1KCL/Noxie-Sort/internal/telemetry"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var flog = slog.With("module", "files")
@@ -89,15 +90,19 @@ func (s *Sorter) Plan(ctx context.Context, obs *telemetry.Observe) error {
 		return fmt.Errorf("config is empty")
 	}
 
-	_, span := obs.Tracer.Start(ctx, "Sorter.Plan")
-	defer span.End()
+	if obs != nil {
+		_, span := obs.Tracer.Start(ctx, "Sorter.Plan")
+		defer span.End()
+	}
 
 	for _, file := range s.Files {
 		fileName := file.Name
 		fileExt := filepath.Ext(fileName)
-		obs.FextCounter.Add(ctx, 1, metric.WithAttributes(
-			attribute.String("file.extension", fileExt),
-		))
+		if obs != nil {
+			obs.FextCounter.Add(ctx, 1, metric.WithAttributes(
+				attribute.String("file.extension", fileExt),
+			))
+		}
 		targetDir, err := s.Config.GetTargetPath(fileExt)
 		if err != nil {
 			flog.Warn("file extension not found in config",
@@ -146,8 +151,11 @@ func (s *Sorter) Plan(ctx context.Context, obs *telemetry.Observe) error {
 
 func (s *Sorter) Execute(ctx context.Context, obs *telemetry.Observe) (SortResult, error) {
 	var report SortResult
-	_, span := obs.Tracer.Start(ctx, "Sorter.Execute")
-	defer span.End()
+	var span trace.Span
+	if obs != nil {
+		_, span = obs.Tracer.Start(ctx, "Sorter.Execute")
+		defer span.End()
+	}
 
 	for _, task := range s.Tasks {
 		destDir := filepath.Dir(task.DestPath)
@@ -174,9 +182,12 @@ func (s *Sorter) Execute(ctx context.Context, obs *telemetry.Observe) (SortResul
 			report.Skipped = append(report.Skipped, task.FileName)
 			continue
 		}
+		report.Moved = append(report.Moved, task.FileName)
 		if info, err := os.Stat(task.DestPath); err == nil {
-			obs.BytesMoved.Add(ctx, info.Size())
-		} else {
+			if obs != nil {
+				obs.BytesMoved.Add(ctx, info.Size())
+			}
+		} else if obs != nil {
 			span.RecordError(err)
 			flog.DebugContext(ctx, "failed to stat moved file for metrics", "error", err)
 		}
@@ -191,20 +202,30 @@ func (s *Sorter) Execute(ctx context.Context, obs *telemetry.Observe) (SortResul
 }
 
 func (s *Sorter) OneTimeSorting(ctx context.Context, obs *telemetry.Observe) (SortResult, error) {
-	spanCtx, span := obs.Tracer.Start(ctx, "Sorter.OneTimeSorting")
-	defer span.End()
+	var span trace.Span
+	spanCtx := ctx
+	if obs != nil {
+		spanCtx, span = obs.Tracer.Start(ctx, "Sorter.OneTimeSorting")
+		defer span.End()
+	}
 
 	if err := s.Scan(); err != nil {
-		span.RecordError(err)
+		if obs != nil {
+			span.RecordError(err)
+		}
 		return SortResult{}, fmt.Errorf("scanning directory %q: %w", s.ScanDir, err)
 	}
 	if err := s.Plan(spanCtx, obs); err != nil {
-		span.RecordError(err)
+		if obs != nil {
+			span.RecordError(err)
+		}
 		return SortResult{}, fmt.Errorf("planning sorting: %w", err)
 	}
 
 	if report, err := s.Execute(spanCtx, obs); err != nil {
-		span.RecordError(err)
+		if obs != nil {
+			span.RecordError(err)
+		}
 		report.Errors = append(report.Errors, s.Errors...)
 		return report, fmt.Errorf("executing sorting: %w", err)
 	} else {
@@ -217,14 +238,20 @@ func (s *Sorter) SelectiveSorting(ctx context.Context, obs *telemetry.Observe, f
 	s.ScanDir = filepath.Clean(scanDir)
 	s.Files = append(s.Files, FileInfo{s.ScanDir, fileName})
 
-	spanCtx, span := obs.Tracer.Start(ctx, "Sorter.SelectiveSorting")
-	defer span.End()
+	var span trace.Span
+	spanCtx := ctx
+	if obs != nil {
+		spanCtx, span = obs.Tracer.Start(ctx, "Sorter.SelectiveSorting")
+		defer span.End()
+	}
 
 	if err := s.Plan(spanCtx, obs); err != nil {
 		return SortResult{}, fmt.Errorf("planning sorting: %w", err)
 	}
 	if report, err := s.Execute(spanCtx, obs); err != nil {
-		span.RecordError(err)
+		if obs != nil {
+			span.RecordError(err)
+		}
 		report.Errors = append(report.Errors, s.Errors...)
 		return report, fmt.Errorf("executing sorting: %w", err)
 	} else {

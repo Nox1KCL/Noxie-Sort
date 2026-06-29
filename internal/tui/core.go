@@ -3,6 +3,7 @@ package tui
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,7 +24,7 @@ func performSort(sorter *files.Sorter) error {
 		return fmt.Errorf("path is not a directory: %q", fileInfo.Name())
 	}
 
-	report, err := sorter.OneTimeSorting()
+	report, err := sorter.OneTimeSorting(context.Background(), nil)
 	if err != nil {
 		return fmt.Errorf("directory sorting error: %w", err)
 	}

@@ -1,6 +1,7 @@
 package files
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,7 +12,10 @@ import (
 
 	"github.com/Nox1KCL/Noxie-Sort/internal/config"
 	"github.com/Nox1KCL/Noxie-Sort/internal/syncutils"
+	"github.com/Nox1KCL/Noxie-Sort/internal/telemetry"
 )
+
+var noopObs *telemetry.Observe
 
 func TestInDirSorting_Basic(t *testing.T) {
 	dir := t.TempDir()
@@ -28,7 +32,7 @@ func TestInDirSorting_Basic(t *testing.T) {
 	cfg.Prepare()
 
 	sorter := NewSorter(cfg)
-	report, err := sorter.OneTimeSorting()
+	report, err := sorter.OneTimeSorting(context.Background(), noopObs)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -63,7 +67,7 @@ func TestSorter_ConflictResolution(t *testing.T) {
 	if err := sorter.Scan(); err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
-	if err := sorter.Plan(); err != nil {
+	if err := sorter.Plan(context.Background(), noopObs); err != nil {
 		t.Fatalf("Plan failed: %v", err)
 	}
 	if len(sorter.Tasks) != 1 {
@@ -73,7 +77,7 @@ func TestSorter_ConflictResolution(t *testing.T) {
 		t.Errorf("expected renamed file with timestamp, got %s", sorter.Tasks[0].DestPath)
 	}
 
-	report, err := sorter.Execute()
+	report, err := sorter.Execute(context.Background(), noopObs)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -135,7 +139,7 @@ func TestSorter_Plan_NoFiles(t *testing.T) {
 	cfg := &config.Config{ScanDir: dir}
 	sorter := NewSorter(cfg)
 
-	if err := sorter.Plan(); err == nil {
+	if err := sorter.Plan(context.Background(), noopObs); err == nil {
 		t.Fatal("expected error for Plan with no files, got nil")
 	}
 }
@@ -153,7 +157,7 @@ func TestSorter_Plan_ExtensionNotFound(t *testing.T) {
 	sorter := NewSorter(cfg)
 	_ = sorter.Scan()
 
-	if err := sorter.Plan(); err != nil {
+	if err := sorter.Plan(context.Background(), noopObs); err != nil {
 		t.Fatalf("Plan failed unexpectedly: %v", err)
 	}
 	if len(sorter.Tasks) != 0 {
@@ -179,7 +183,7 @@ func TestSorter_Plan_AbsoluteTargetPath(t *testing.T) {
 
 	sorter := NewSorter(cfg)
 	_ = sorter.Scan()
-	_ = sorter.Plan()
+	_ = sorter.Plan(context.Background(), noopObs)
 
 	if len(sorter.Tasks) != 1 {
 		t.Fatalf("expected 1 task, got %d", len(sorter.Tasks))
@@ -202,7 +206,7 @@ func TestSelectiveSorting(t *testing.T) {
 	cfg.Prepare()
 
 	sorter := NewSorter(cfg)
-	report, err := sorter.SelectiveSorting(filepath.Join(dir, "doc.pdf"))
+	report, err := sorter.SelectiveSorting(context.Background(), noopObs, filepath.Join(dir, "doc.pdf"))
 
 	if err != nil {
 		t.Fatalf("SelectiveSorting failed: %v", err)
