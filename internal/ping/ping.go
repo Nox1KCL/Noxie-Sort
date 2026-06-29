@@ -1,9 +1,10 @@
-package server
+package ping
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -14,6 +15,10 @@ type Status struct {
 }
 
 func Ping() {
+	targetURL := os.Getenv("DAEMON_URL")
+	if targetURL == "" {
+		targetURL = "http://localhost:9999/status"
+	}
 	client := http.Client{
 		Timeout: time.Second * 10,
 	}
