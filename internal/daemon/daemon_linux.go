@@ -37,16 +37,11 @@ func (s *ServiceInfo) initDaemon() error {
 	return nil
 }
 
-func ClosingDaemon() error {
+func (s *ServiceInfo) ClosingDaemon() error {
 	dlog.Info("starting daemon uninstallation")
-	s := NewService()
-	err := s.initService()
-	if err != nil {
-		return err
-	}
 
 	dlog.Debug("disabling and stopping service")
-	err = exec.Command("systemctl", "--user", "disable", "--now", "noxie-sort.service").Run()
+	err := exec.Command("systemctl", "--user", "disable", "--now", "noxie-sort.service").Run()
 	if err != nil {
 		return err
 	}

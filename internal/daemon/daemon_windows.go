@@ -26,7 +26,7 @@ func (s *ServiceInfo) initDaemon() error {
 	return nil
 }
 
-func ClosingDaemon() error {
+func (s *ServiceInfo) ClosingDaemon() error {
 	dlog.Info("starting daemon uninstallation")
 	dlog.Debug("opening registry key for deletion")
 	k, err := registry.OpenKey(registry.CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Run", registry.SET_VALUE)
