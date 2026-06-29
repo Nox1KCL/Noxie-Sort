@@ -1,4 +1,10 @@
 services:
+  server:
+    build: .
+    environment:
+      - DAEMON_URL=http://host.docker.internal:9999/status
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
   victoriametrics:
     image: victoriametrics/victoria-metrics:latest
     container_name: victoriametrics

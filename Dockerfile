@@ -8,11 +8,16 @@ ADD . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-w -s" \
-    -o /app/nxe-sort ./cmd/
+    -o /app/nxe-sort ./cmd/main.go
+
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-w -s" \
+    -o /app/ping ./cmd/server.go
 
 FROM alpine:3.19
 WORKDIR /app
 
-COPY --from=builder /app/nxe-sort .
+COPY --from=builder /app/ .
 
-CMD ["./nxe-sort"]
+#CMD ["./nxe-sort"]
+CMD ["./ping"]
