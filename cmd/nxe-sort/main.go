@@ -18,15 +18,17 @@ import (
 	"github.com/Nox1KCL/Noxie-Sort/internal/logger"
 	"github.com/Nox1KCL/Noxie-Sort/internal/syncutils"
 	"github.com/Nox1KCL/Noxie-Sort/internal/telemetry"
+	"github.com/Nox1KCL/Noxie-Sort/internal/tui"
 	"github.com/Nox1KCL/Noxie-Sort/internal/watcher"
 )
 
 type Flags struct {
-	ConfigPath string
-	Daemon     string
-	Background bool
-	IsChild    bool
-	Stop       bool
+	ConfigPath  string
+	Daemon      string
+	Background  bool
+	IsChild     bool
+	Stop        bool
+	Interactive bool
 }
 
 func (f *Flags) flagProcessing() {
@@ -35,6 +37,7 @@ func (f *Flags) flagProcessing() {
 	flag.BoolVar(&f.Background, "background", false, "run for create a child process")
 	flag.BoolVar(&f.IsChild, "child", false, "run as child process")
 	flag.BoolVar(&f.Stop, "stop", false, "stop processing")
+	flag.BoolVar(&f.Interactive, "i", false, "launch interactive TUI config editor")
 	flag.Parse()
 }
 
@@ -53,6 +56,15 @@ func main() {
 
 	foundPath := config.FindConfig(f.ConfigPath)
 	cfg, cfgErr := config.GetConfig(foundPath)
+
+	if f.Interactive {
+		if err := tui.RunTUI(foundPath, cfg); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "tui: %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
 	if cfgErr != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "get configuration file: %v\n", cfgErr)
 		os.Exit(1)
