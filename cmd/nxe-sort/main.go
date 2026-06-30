@@ -60,17 +60,17 @@ func main() {
 	foundPath := config.FindConfig(f.ConfigPath)
 	cfg, cfgErr := config.GetConfig(foundPath)
 
+	if cfgErr != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "get configuration file: %v\n", cfgErr)
+		os.Exit(1)
+	}
+
 	if f.Interactive {
 		if err := tui.RunTUI(foundPath, cfg); err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "tui: %v\n", err)
 			os.Exit(1)
 		}
 		os.Exit(0)
-	}
-
-	if cfgErr != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "get configuration file: %v\n", cfgErr)
-		os.Exit(1)
 	}
 
 	levels := map[slog.Level]string{
@@ -99,22 +99,12 @@ func main() {
 	)
 
 	if f.Once != "" {
-		sorter := files.NewSorter(cfg)
-		if f.Once != "default" {
-			sortPath := filepath.Clean(f.Once)
-			if !filepath.IsAbs(sortPath) {
-				_, _ = fmt.Fprintf(os.Stderr, "invalid once path '%s': must be absolute path\n", f.Once)
-				os.Exit(1)
-			}
-			sorter.ScanDir = sortPath
-		}
-		report, err := sorter.OneTimeSorting(context.Background(), &telemetry.Observe{})
+		err := f.once(cfg)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "failed one-time sorting %v\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "sorting: %v\n", err)
 			os.Exit(1)
 		}
 		_, _ = fmt.Fprintf(os.Stderr, "Successfully sorted\n")
-		tui.GenerateReport(report)
 		os.Exit(0)
 	}
 
@@ -124,46 +114,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	switch f.Daemon {
-	case "install":
-		err := service.LaunchingDaemon()
+	if f.Daemon != "" {
+		err := f.daemon(service)
 		if err != nil {
-			mlog.Error("failed to install daemon", "error", err)
+			_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
 		}
-		mlog.Info("daemon installed successfully")
-		os.Exit(0)
-	case "uninstall":
-		err := service.ClosingDaemon()
-		if err != nil {
-			mlog.Error("failed to uninstall daemon", "error", err)
-			os.Exit(1)
-		}
-		mlog.Info("daemon uninstalled successfully")
 		os.Exit(0)
 	}
 
 	if f.Background {
-		fileLock, err := background.IsChildRunning()
+		err := f.background()
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "background process is running: %v\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
 		}
-		fileLock.Close()
-
-		if err := daemon.IsWorking(); err != nil {
-			mlog.Warn("daemon is not properly configured (background process will still start)", "error", err)
-		}
-
-		childArgs := []string{"--child", "--config", f.ConfigPath}
-		err = background.RunInBackground(childArgs)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "background run failed: %v\n", err)
-			os.Exit(1)
-		}
-		mlog.Info("background run",
-			"args", childArgs)
-		return
+		os.Exit(0)
 	}
 
 	if f.IsChild {
@@ -214,4 +180,60 @@ func main() {
 	wg.Wait()
 
 	mlog.Info("graceful shutdown complete")
+}
+
+func (f *Flags) once(cfg *config.Config) error {
+	sorter := files.NewSorter(cfg)
+	if f.Once != "default" {
+		sortPath := filepath.Clean(f.Once)
+		if !filepath.IsAbs(sortPath) {
+			return fmt.Errorf("invalid once path '%s': must be absolute path", f.Once)
+		}
+		sorter.ScanDir = sortPath
+	}
+	report, err := sorter.OneTimeSorting(context.Background(), &telemetry.Observe{})
+	if err != nil {
+		return fmt.Errorf("failed one-time sorting %w", err)
+	}
+	tui.GenerateReport(report)
+	return nil
+}
+
+func (f *Flags) daemon(service *daemon.ServiceInfo) error {
+	switch f.Daemon {
+	case "install":
+		err := service.LaunchingDaemon()
+		if err != nil {
+			return fmt.Errorf("failed to install daemon: %w", err)
+		}
+		return nil
+	case "uninstall":
+		err := service.ClosingDaemon()
+		if err != nil {
+			return fmt.Errorf("failed to uninstall daemon: %w", err)
+		}
+		return nil
+	default:
+		return fmt.Errorf("command not supported: %s", f.Daemon)
+	}
+}
+
+func (f *Flags) background() error {
+	fileLock, err := background.IsChildRunning()
+	if err != nil {
+		return fmt.Errorf("background process is running: %w", err)
+	}
+	fileLock.Close()
+
+	if err := daemon.IsWorking(); err != nil {
+		// daemon is not properly configured (background process will still start
+		return nil
+	}
+
+	childArgs := []string{"--child", "--config", f.ConfigPath}
+	err = background.RunInBackground(childArgs)
+	if err != nil {
+		return fmt.Errorf("background run failed: %w", err)
+	}
+	return nil
 }
