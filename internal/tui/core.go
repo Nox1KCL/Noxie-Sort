@@ -2,87 +2,27 @@
 package tui
 
 import (
-	"bufio"
-	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 
+	"github.com/Nox1KCL/Noxie-Sort/internal/config"
 	"github.com/Nox1KCL/Noxie-Sort/internal/files"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/pelletier/go-toml/v2"
 )
 
-func performSort(sorter *files.Sorter) error {
-	fileInfo, err := os.Stat(sorter.ScanDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("path doesn't exist: %w", err)
-		}
-		return fmt.Errorf("getting file info %q: %w", sorter.ScanDir, err)
-	}
-	if !fileInfo.IsDir() {
-		return fmt.Errorf("path is not a directory: %q", fileInfo.Name())
-	}
+func RunTUI(configPath string, cfg *config.Config) error {
+	paths := config.DefaultPaths()
+	model := NewAppModel(configPath, cfg, paths)
+	p := tea.NewProgram(
+		model,
+		tea.WithAltScreen(),
+		tea.WithMouseCellMotion(),
+	)
 
-	report, err := sorter.OneTimeSorting(context.Background(), nil)
-	if err != nil {
-		return fmt.Errorf("directory sorting error: %w", err)
+	if _, err := p.Run(); err != nil {
+		return fmt.Errorf("tui: %w", err)
 	}
-
-	GenerateReport(report)
 	return nil
-}
-
-func getManualPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("getting home directory: %w", err)
-	}
-
-	fmt.Printf("We suppose your home dir is: %s\n", homeDir)
-	useHome := askChoice("Use it for base of path?(y/n): ", "y", "n")
-	userInput, err := askInput("Enter folder's path you want to sort: ")
-	if err != nil {
-		return "", fmt.Errorf("getting user input: %w", err)
-	}
-
-	if useHome == "y" {
-		return filepath.Join(homeDir, userInput), nil
-	}
-	return userInput, nil
-}
-
-func askChoice(prompt string, validOptions ...string) string {
-	var input string
-	for {
-		fmt.Print(prompt)
-		_, err := fmt.Scanln(&input)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "\nerror reading input: %v\n", err)
-			os.Exit(1)
-		}
-		input = strings.TrimSpace(input)
-
-		for _, opt := range validOptions {
-			if input == opt {
-				return input
-			}
-		}
-		fmt.Println("Invalid input, try again.")
-	}
-}
-
-func askInput(prompt string) (string, error) {
-	fmt.Print(prompt)
-	scanner := bufio.NewScanner(os.Stdin)
-	if scanner.Scan() {
-		return strings.TrimSpace(scanner.Text()), nil
-	}
-	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("reading input: %w", err)
-	}
-
-	return "", fmt.Errorf("unexpected end of input")
 }
 
 func GenerateReport(report files.SortResult) {
@@ -95,4 +35,12 @@ func GenerateReport(report files.SortResult) {
 			fmt.Printf(" - %v\n", err)
 		}
 	}
+}
+
+func marshalTOML(cfg *config.Config) ([]byte, error) {
+	data, err := toml.Marshal(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling config: %w", err)
+	}
+	return data, nil
 }
