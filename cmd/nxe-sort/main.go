@@ -226,8 +226,7 @@ func (f *Flags) background() error {
 	fileLock.Close()
 
 	if err := daemon.IsWorking(); err != nil {
-		// daemon is not properly configured (background process will still start
-		return nil
+		fmt.Fprintf(os.Stderr, "daemon is not properly configured (background process will still start): %v\n", err)
 	}
 
 	childArgs := []string{"--child", "--config", f.ConfigPath}
