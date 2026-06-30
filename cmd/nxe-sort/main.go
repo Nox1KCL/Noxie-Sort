@@ -103,16 +103,18 @@ func main() {
 		if f.Once != "default" {
 			sortPath := filepath.Clean(f.Once)
 			if !filepath.IsAbs(sortPath) {
-				_, _ = fmt.Fprintf(os.Stderr, "invalid once path '%s': must be absolute path", f.Once)
+				_, _ = fmt.Fprintf(os.Stderr, "invalid once path '%s': must be absolute path\n", f.Once)
 				os.Exit(1)
 			}
-			sorter.ScanDir = f.Once
+			sorter.ScanDir = sortPath
 		}
-		_, err := sorter.OneTimeSorting(context.Background(), &telemetry.Observe{})
+		report, err := sorter.OneTimeSorting(context.Background(), &telemetry.Observe{})
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "failed one-time sorting %v\n", err)
 			os.Exit(1)
 		}
+		_, _ = fmt.Fprintf(os.Stderr, "Successfully sorted\n")
+		tui.GenerateReport(report)
 		os.Exit(0)
 	}
 
