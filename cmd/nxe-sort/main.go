@@ -15,6 +15,7 @@ import (
 	"github.com/Nox1KCL/Noxie-Sort/internal/background"
 	"github.com/Nox1KCL/Noxie-Sort/internal/config"
 	"github.com/Nox1KCL/Noxie-Sort/internal/daemon"
+	"github.com/Nox1KCL/Noxie-Sort/internal/files"
 	"github.com/Nox1KCL/Noxie-Sort/internal/logger"
 	"github.com/Nox1KCL/Noxie-Sort/internal/syncutils"
 	"github.com/Nox1KCL/Noxie-Sort/internal/telemetry"
@@ -29,6 +30,7 @@ type Flags struct {
 	IsChild     bool
 	Stop        bool
 	Interactive bool
+	Once        string
 }
 
 func (f *Flags) flagProcessing() {
@@ -38,6 +40,7 @@ func (f *Flags) flagProcessing() {
 	flag.BoolVar(&f.IsChild, "child", false, "run as child process")
 	flag.BoolVar(&f.Stop, "stop", false, "stop processing")
 	flag.BoolVar(&f.Interactive, "i", false, "launch interactive TUI config editor")
+	flag.StringVar(&f.Once, "once", "", "one-time sort ('default' for config.ScanDir or absolute path)")
 	flag.Parse()
 }
 
@@ -94,6 +97,25 @@ func main() {
 		"config_path", foundPath,
 		"rules_count", len(cfg.Rules),
 	)
+
+	if f.Once != "" {
+		sorter := files.NewSorter(cfg)
+		if f.Once != "default" {
+			sortPath := filepath.Clean(f.Once)
+			if !filepath.IsAbs(sortPath) {
+				_, _ = fmt.Fprintf(os.Stderr, "invalid once path '%s': must be absolute path", f.Once)
+				os.Exit(1)
+			}
+			sorter.ScanDir = f.Once
+		}
+		_, err := sorter.OneTimeSorting(context.Background(), &telemetry.Observe{})
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "failed one-time sorting %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
 	service, err := daemon.NewService()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "create service: %v\n", err)

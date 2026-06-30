@@ -54,7 +54,7 @@ func NewSorter(cfg *config.Config) *Sorter {
 	return &Sorter{
 		Config:   cfg,
 		ScanDir:  cfg.ScanDir,
-		ScanDirs: make([]string, 0),
+		ScanDirs: cfg.ScanDirs,
 		Files:    make([]FileInfo, 0),
 		Tasks:    make([]MoveTask, 0),
 		Errors:   make([]error, 0),
