@@ -24,8 +24,8 @@ type Config struct {
 	ScanDirs      []string              `toml:"scan_dirs"`
 	LogsDir       string                `toml:"logs_dir"`
 	Rules         map[string]FolderRule `toml:"rules"`
-	InvertedRules map[string]string
-	Logger        logger.LumberConfig `toml:"logger"`
+	InvertedRules map[string]string     `toml:"-"`
+	Logger        logger.LumberConfig   `toml:"logger"`
 }
 
 type FolderRule struct {
@@ -145,6 +145,18 @@ func (cfg *Config) ConfigExtValidate() error {
 	return nil
 }
 
+func candidatePaths() []string {
+	paths := []string{
+		"config.toml",
+		os.ExpandEnv("$HOME/Noxie-Sort/config.toml"),
+		"/etc/Noxie-Sort/config.toml",
+	}
+	if configDir, err := os.UserConfigDir(); err == nil {
+		paths = append(paths, filepath.Join(configDir, "Noxie-Sort", "config.toml"))
+	}
+	return paths
+}
+
 func FindConfig(flagPath string) string {
 	if flagPath != "" {
 		return flagPath
@@ -158,22 +170,14 @@ func FindConfig(flagPath string) string {
 		return envPath
 	}
 
-	defaultPaths := []string{
-		"config.toml",
-		os.ExpandEnv("$HOME/Noxie-Sort/config.toml"),
-		"/etc/Noxie-Sort/config.toml",
-	}
-
-	configDir, err := os.UserConfigDir()
-	if err == nil {
-		defaultPaths = append(defaultPaths, filepath.Join(configDir, "Noxie-Sort", "config.toml"))
-	}
-
-	for _, p := range defaultPaths {
-		defaultPath := os.ExpandEnv(p)
-		if _, err := os.Stat(defaultPath); err == nil {
-			return defaultPath
+	for _, p := range candidatePaths() {
+		if _, err := os.Stat(p); err == nil {
+			return p
 		}
 	}
 	return ""
+}
+
+func DefaultPaths() []string {
+	return candidatePaths()
 }
