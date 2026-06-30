@@ -125,6 +125,12 @@ nxe-sort --config /path/to/config.toml
 # Run as a background process
 nxe-sort --background
 
+# Run a one-time sort and exit (using scan_dir from config)
+nxe-sort --once default
+
+# Run a one-time sort on a specific directory and exit
+nxe-sort --once /path/to/folder
+
 # Manage the system daemon
 nxe-sort --daemon install
 nxe-sort --daemon uninstall
@@ -137,6 +143,7 @@ nxe-sort --daemon uninstall
 | `-i` | bool | Launch the interactive TUI config editor |
 | `--config` | string | Path to config file |
 | `--background` | bool | Spawn a detached child process |
+| `--once` | string | One-time sort (`default` for config.ScanDir or absolute path) |
 | `--daemon` | string | `install` or `uninstall` system daemon |
 | `--stop` | bool | Stop the running process |
 
