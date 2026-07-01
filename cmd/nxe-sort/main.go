@@ -23,6 +23,9 @@ import (
 	"github.com/Nox1KCL/Noxie-Sort/internal/watcher"
 )
 
+var mlog = slog.With("module", "main")
+
+
 type Flags struct {
 	ConfigPath  string
 	Daemon      string
@@ -85,7 +88,6 @@ func main() {
 		os.Exit(1)
 	}
 	slog.SetDefault(slog.New(handler))
-	mlog := slog.With("module", "main")
 
 	if foundPath != "" {
 		mlog.Info("config file found", "path", foundPath)

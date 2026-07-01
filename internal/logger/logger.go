@@ -11,6 +11,8 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var llog = slog.With("module", "logger")
+
 type LumberConfig struct {
 	MaxSize    int  `toml:"max_size"`
 	MaxAge     int  `toml:"max_age"`
@@ -76,6 +78,7 @@ func GetHandler(cfg *LumberConfig, levels map[slog.Level]string) (*LeveledHandle
 
 	logHandler := &LeveledHandler{handlers}
 
+	llog.Info("logger handlers created successfully", "levels_count", len(levels))
 	return logHandler, nil
 }
 

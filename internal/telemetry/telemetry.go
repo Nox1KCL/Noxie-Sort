@@ -22,6 +22,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var tlog = slog.With("module", "telemetry")
+
 type Observe struct {
 	Tracer       trace.Tracer
 	Meter        metric.Meter
@@ -106,6 +108,7 @@ func NewTelemetry() (func(context.Context) error, *Observe, error) {
 
 	observer := getObserver()
 
+	tlog.Info("telemetry initialized successfully")
 	return shutdown, observer, nil
 }
 

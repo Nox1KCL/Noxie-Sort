@@ -21,6 +21,7 @@ func detach(childArgs []string) error {
 		return fmt.Errorf("getting user cache dir: %w", err)
 	}
 	logDir := filepath.Join(cacheDir, "Noxie-Sort")
+	dtlog.Debug("ensuring log directory exists", "logDir", logDir)
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return fmt.Errorf("creating log dir: %w", err)
 	}
@@ -37,14 +38,18 @@ func detach(childArgs []string) error {
 
 	cmd.Stdout = infoFile
 	cmd.Stderr = errFile
+	
+	dtlog.Info("starting detached process", "cmd", cmd.Path, "args", cmd.Args)
 	err = cmd.Start()
 
 	infoFile.Close()
 	errFile.Close()
 
 	if err != nil {
+		dtlog.Error("failed to start detached process", "error", err)
 		return err
 	}
+	dtlog.Debug("exiting parent process")
 	os.Exit(0)
 	return nil
 }

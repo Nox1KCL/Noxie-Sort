@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 )
 
@@ -128,4 +129,18 @@ func TestGetTargetPath_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for unknown extension, got nil")
 	}
+}
+
+func TestFindConfig(t *testing.T) {
+	// 1. Provided flag takes priority
+	if res := FindConfig("custom_path.toml"); res != "custom_path.toml" {
+		t.Errorf("expected custom_path.toml, got %s", res)
+	}
+
+	// 2. Env variable
+	os.Setenv("IFS_CONFIG_PATH", "env_path.toml")
+	if res := FindConfig(""); res != "env_path.toml" {
+		t.Errorf("expected env_path.toml, got %s", res)
+	}
+	os.Unsetenv("IFS_CONFIG_PATH")
 }

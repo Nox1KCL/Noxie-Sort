@@ -47,6 +47,7 @@ func (s *ServiceInfo) LaunchingDaemon() error {
 }
 
 func (s *ServiceInfo) OpenServer(ctx context.Context) {
+	dlog.Info("opening server", "port", ":9999")
 	srv := &http.Server{
 		Addr:         ":9999",
 		BaseContext:  func(net.Listener) context.Context { return ctx },
