@@ -180,9 +180,3 @@ docker compose up --build
 ```
 
 The compose file starts the ping server by default. To run the sorter instead, update the `CMD` in `Dockerfile`.
-
----
-
-## License
-
-MIT
